@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zvizegwe Farm Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:       #1C1C19;
+  --ink2:      #5A5A54;
+  --ink3:      #9A9A92;
+  --cream:     #F9F7F2;
+  --cream2:    #F1EFE8;
+  --cream3:    #E8E5DC;
+  --green:     #2A7A5A;
+  --green-l:   #D6EDE3;
+  --green-m:   #4CA87A;
+  --amber:     #B5700F;
+  --amber-l:   #FAF0DC;
+  --red:       #C0392B;
+  --red-l:     #FAEAE8;
+  --blue:      #2C6FA8;
+  --blue-l:    #DEECf8;
+  --border:    rgba(0,0,0,0.08);
+  --border2:   rgba(0,0,0,0.14);
+  --display:   'Playfair Display', Georgia, serif;
+  --body:      'DM Sans', sans-serif;
+  --mono:      'DM Mono', monospace;
+  --r:         10px;
+  --r-sm:      6px;
+  --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: var(--body); background: var(--cream); color: var(--ink); font-size: 14px; line-height: 1.55; }
+
+/* ── APP SHELL ─────────────────────────────────────── */
+.app { display: flex; height: 100vh; overflow: hidden; }
+
+/* ── SIDEBAR ───────────────────────────────────────── */
+.sidebar {
+  width: 224px; flex-shrink: 0;
+  background: var(--ink);
+  color: var(--cream);
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+.logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.logo-leaf {
+  width: 32px; height: 32px;
+  background: var(--green-m);
+  border-radius: 50% 50% 50% 4px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+.logo-name {
+  font-family: var(--display);
+  font-size: 15px; font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+.logo-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+.sync-area { padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.sync-btn {
+  width: 100%; padding: 8px 12px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--r-sm);
+  color: rgba(255,255,255,0.85);
+  font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: var(--body);
+  display: flex; align-items: center; gap: 7px;
+  transition: background .15s;
+}
+.sync-btn:hover { background: rgba(255,255,255,0.14); }
+.sync-btn svg { flex-shrink: 0; }
+.sync-status { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 7px; font-family: var(--mono); text-align: center; line-height: 1.4; }
+.sync-status.ok  { color: var(--green-m); }
+.sync-status.err { color: #e07070; }
+
+.nav-section {
+  padding: 16px 20px 5px;
+  font-size: 9px; font-weight: 500;
+  color: rgba(255,255,255,0.28);
+  text-transform: uppercase; letter-spacing: .12em;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 20px;
+  font-size: 13px; color: rgba(255,255,255,0.55);
+  background: none; border: none; width: 100%;
+  text-align: left; cursor: pointer;
+  font-family: var(--body);
+  border-left: 2px solid transparent;
+  transition: all .12s;
+}
+.nav-item:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.05); }
+.nav-item.active {
+  color: #fff;
+  background: rgba(255,255,255,0.07);
+  border-left-color: var(--green-m);
+}
+.nav-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .5; flex-shrink: 0; }
+.nav-item.active .nav-dot { opacity: 1; background: var(--green-m); }
+
+/* ── MAIN ──────────────────────────────────────────── */
+.main { flex: 1; overflow-y: auto; background: var(--cream); }
+.main-inner { max-width: 1120px; padding: 36px 40px; margin: 0 auto; }
+
+.page { display: none; }
+.page.active { display: block; animation: fadeUp .25s ease; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+.page-eyebrow { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .1em; color: var(--green); margin-bottom: 5px; }
+.page-title { font-family: var(--display); font-size: 26px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 4px; }
+.page-sub { font-size: 13px; color: var(--ink2); margin-bottom: 28px; }
+
+/* ── METRIC CARDS ──────────────────────────────────── */
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 10px; margin-bottom: 22px; }
+.metric {
+  background: var(--cream2);
+  border: 1px solid var(--border);
+  border-radius: var(--r); padding: 14px 16px;
+  position: relative; overflow: hidden;
+}
+.metric::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: var(--cream3);
+}
+.metric.accent::before { background: var(--green-m); }
+.metric.warn::before   { background: var(--amber); }
+.metric.danger::before { background: var(--red); }
+.metric-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .07em; color: var(--ink3); margin-bottom: 7px; }
+.metric-value { font-family: var(--mono); font-size: 26px; font-weight: 500; color: var(--ink); line-height: 1; }
+.metric.accent .metric-value { color: var(--green); }
+.metric.warn   .metric-value { color: var(--amber); }
+.metric.danger .metric-value { color: var(--red); }
+.metric-unit   { font-size: 12px; color: var(--ink3); font-family: var(--body); font-weight: 400; }
+
+/* ── CARDS ─────────────────────────────────────────── */
+.card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  padding: 20px 22px;
+  margin-bottom: 18px;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.card-title {
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .09em;
+  color: var(--ink3);
+}
+.card-pill {
+  font-size: 10px; font-weight: 500;
+  padding: 3px 9px; border-radius: 20px;
+  background: var(--green-l); color: var(--green);
+}
+.card-pill.warn { background: var(--amber-l); color: var(--amber); }
+.card-pill.danger { background: var(--red-l); color: var(--red); }
+
+/* ── TABLE ─────────────────────────────────────────── */
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  text-align: left; padding: 8px 12px;
+  font-size: 10px; font-weight: 600;
+  color: var(--ink3); text-transform: uppercase; letter-spacing: .07em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap; background: var(--cream2);
+}
+th:first-child { border-radius: var(--r-sm) 0 0 0; }
+th:last-child  { border-radius: 0 var(--r-sm) 0 0; }
+td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--cream); }
+.num { font-family: var(--mono); }
+.c-green { color: var(--green); font-weight: 500; }
+.c-red   { color: var(--red); }
+.c-amber { color: var(--amber); }
+
+/* ── BADGES ────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 500; white-space: nowrap;
+}
+.bg  { background: var(--green-l);  color: var(--green); }
+.ba  { background: var(--amber-l);  color: var(--amber); }
+.br  { background: var(--red-l);    color: var(--red); }
+.bb  { background: var(--blue-l);   color: var(--blue); }
+.bk  { background: var(--cream2);   color: var(--ink2); }
+
+/* ── TABS ──────────────────────────────────────────── */
+.tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 22px; gap: 0; }
+.tab {
+  padding: 9px 18px; font-size: 13px;
+  color: var(--ink3); border: none; background: none;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  font-family: var(--body); cursor: pointer; transition: color .15s;
+}
+.tab:hover { color: var(--ink); }
+.tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 500; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── GRID LAYOUTS ──────────────────────────────────── */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.crop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-bottom: 18px; }
+
+/* ── STATUS STATES ─────────────────────────────────── */
+.loading-wrap { display: flex; align-items: center; gap: 10px; padding: 24px 0; color: var(--ink3); font-size: 13px; }
+.spinner { width: 18px; height: 18px; border: 2px solid var(--border2); border-top-color: var(--green); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.err-bar { padding: 12px 16px; background: var(--red-l); border: 1px solid rgba(192,57,43,.15); border-radius: var(--r); color: var(--red); font-size: 13px; margin-bottom: 18px; line-height: 1.5; }
+.info-bar { padding: 10px 14px; background: var(--green-l); border: 1px solid rgba(42,122,90,.15); border-radius: var(--r); color: var(--green); font-size: 12px; margin-bottom: 18px; display: flex; align-items: flex-start; gap: 8px; }
+.gap-bar  { padding: 10px 14px; background: var(--amber-l); border: 1px solid rgba(181,112,15,.15); border-radius: var(--r); color: var(--amber); font-size: 12px; margin-bottom: 18px; }
+.empty { text-align: center; padding: 32px; color: var(--ink3); font-size: 13px; }
+
+/* ── SHEET LINK BADGE ──────────────────────────────── */
+.sheet-link {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--green);
+  text-decoration: none; padding: 3px 8px;
+  border: 1px solid var(--green-l); border-radius: 20px;
+  background: var(--green-l); transition: background .12s;
+}
+.sheet-link:hover { background: #c0e0d0; }
+
+/* ── RESPONSIVE ────────────────────────────────────── */
+@media (max-width: 900px) {
+  .sidebar { width: 190px; }
+  .main-inner { padding: 24px 20px; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .sidebar { display: none; }
+  .metrics { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══════════════════════════════ SIDEBAR ═══════════════════════════════ -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-leaf">🌿</div>
+    <div class="logo-name">Zvizegwe Farm</div>
+    <div class="logo-sub">Live Dashboard</div>
+  </div>
+
+  <div class="sync-area">
+    <button class="sync-btn" id="sync-btn" onclick="syncAll()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      Refresh from Sheets
+    </button>
+    <div class="sync-status" id="sync-status">Loading data…</div>
+  </div>
+
+  <div class="nav-section">Overview</div>
+  <button class="nav-item active" onclick="nav('dashboard',this)"><span class="nav-dot"></span>Dashboard</button>
+
+  <div class="nav-section">Rabbits</div>
+  <button class="nav-item" onclick="nav('rabbits',this)"><span class="nav-dot"></span>Daily Headcounts</button>
+  <button class="nav-item" onclick="nav('does',this)"><span class="nav-dot"></span>Breeding Does</button>
+  <button class="nav-item" onclick="nav('weights',this)"><span class="nav-dot"></span>Weaner Weights</button>
+
+  <div class="nav-section">Other Livestock</div>
+  <button class="nav-item" onclick="nav('goats',this)"><span class="nav-dot"></span>Goats</button>
+  <button class="nav-item" onclick="nav('sheep',this)"><span class="nav-dot"></span>Sheep</button>
+  <button class="nav-item" onclick="nav('health',this)"><span class="nav-dot"></span>Health Records</button>
+
+  <div class="nav-section">Finance</div>
+  <button class="nav-item" onclick="nav('sales',this)"><span class="nav-dot"></span>Sales Register</button>
+
+  <div class="nav-section">Orchards</div>
+  <button class="nav-item" onclick="nav('orchards',this)"><span class="nav-dot"></span>Activities</button>
+  <button class="nav-item" onclick="nav('yield',this)"><span class="nav-dot"></span>Yield Records</button>
+
+  <div class="nav-section">Data</div>
+  <button class="nav-item" onclick="nav('sheets',this)"><span class="nav-dot"></span>All Sheets</button>
+</div>
+
+<!-- ═══════════════════════════════ MAIN ═══════════════════════════════════ -->
+<div class="main">
+<div class="main-inner">
+
+<!-- ─── DASHBOARD ─────────────────────────────────────── -->
+<div id="page-dashboard" class="page active">
+  <div class="page-eyebrow">Overview</div>
+  <div class="page-title">Zvizegwe Farm</div>
+  <div class="page-sub" id="dash-sub">Fetching live data from Google Sheets…</div>
+  <div id="dash-err" class="err-bar" style="display:none"></div>
+  <div id="dash-gaps" class="gap-bar" style="display:none"></div>
+  <div id="dash-loading" class="loading-wrap"><div class="spinner"></div>Loading all sheets…</div>
+  <div id="dash-content" style="display:none">
+    <div class="metrics" id="dash-metrics"></div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Latest herd summary</span><span class="card-pill" id="dash-date-pill">—</span></div>
+        <table><thead><tr><th>Species</th><th>Total</th><th>Adult ♂</th><th>Adult ♀</th><th>Young</th><th>Pregnant</th></tr></thead>
+        <tbody id="dash-herd"></tbody></table>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Latest rabbit entry detail</span></div>
+        <table><thead><tr><th>Field</th><th>Value</th></tr></thead>
+        <tbody id="dash-detail"></tbody></table>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Active health alerts</span><span id="dash-alert-pill" class="card-pill danger" style="display:none"></span></div>
+        <div id="dash-health-content"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Recent sales</span><span class="card-pill" id="dash-sales-pill">—</span></div>
+        <div id="dash-sales-content"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── RABBITS ────────────────────────────────────────── -->
+<div id="page-rabbits" class="page">
+  <div class="page-eyebrow">Livestock</div>
+  <div class="page-title">Rabbit Headcounts</div>
+  <div class="page-sub">Daily records — live from Google Sheets · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1i-9acn1oWUYnD3YGgk2IP4Msw2jJk2_9fby5iL3Mge0" target="_blank">✏️ Edit sheet</a></div>
+  <div id="r-loading" class="loading-wrap"><div class="spinner"></div>Loading rabbit data…</div>
+  <div id="r-err" class="err-bar" style="display:none"></div>
+  <div id="r-content" style="display:none">
+    <div class="metrics" id="r-metrics"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">All daily submissions</span><span class="card-pill" id="r-count">0 records</span></div>
+      <div class="table-scroll">
+        <table><thead><tr>
+          <th>Date</th><th>By</th><th>Total</th><th>Preg.</th>
+          <th>♂ Adults</th><th>♀ Adults</th><th>Kits ♂</th><th>Kits ♀</th>
+          <th>Born ♂</th><th>Born ♀</th><th>Died ♂</th><th>Died ♀</th>
+          <th>Lost ♂</th><th>Lost ♀</th><th>Slght ♂</th><th>Slght ♀</th>
+          <th>Feed</th><th>Mated</th>
+        </tr></thead>
+        <tbody id="r-table"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── DOES ──────────────────────────────────────────── -->
+<div id="page-does" class="page">
+  <div class="page-eyebrow">Rabbits</div>
+  <div class="page-title">Breeding Does Register</div>
+  <div class="page-sub">161 adult females — cage, breed and mating records</div>
+  <div class="metrics">
+    <div class="metric accent"><div class="metric-label">Total does</div><div class="metric-value">161</div></div>
+    <div class="metric"><div class="metric-label">NZ White</div><div class="metric-value">~130</div></div>
+    <div class="metric"><div class="metric-label">Californian</div><div class="metric-value">~25</div></div>
+    <div class="metric"><div class="metric-label">Cinnamon/Cross</div><div class="metric-value">~6</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Doe register — cage records</span></div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Tag</th><th>Cage</th><th>Breed</th><th>Last Mated</th><th>Last Birth</th></tr></thead>
+      <tbody id="does-table"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ─── WEIGHTS ───────────────────────────────────────── -->
+<div id="page-weights" class="page">
+  <div class="page-eyebrow">Rabbits</div>
+  <div class="page-title">Weaner Weights</div>
+  <div class="page-sub">Grow-out batch weigh-ins — groups A through D</div>
+  <div class="metrics">
+    <div class="metric accent"><div class="metric-label">Groups</div><div class="metric-value">16</div></div>
+    <div class="metric"><div class="metric-label">Weighed</div><div class="metric-value">59</div></div>
+    <div class="metric"><div class="metric-label">Avg weight</div><div class="metric-value">1.94<span class="metric-unit"> kg</span></div></div>
+    <div class="metric"><div class="metric-label">Heaviest</div><div class="metric-value">2.3<span class="metric-unit"> kg</span></div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Group weight summary</span></div>
+    <table><thead><tr><th>Group</th><th>Animals</th><th>Avg (kg)</th><th>Min</th><th>Max</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="num">AW1</td><td>5</td><td class="num">1.72</td><td>1.5</td><td>1.9</td><td><span class="badge ba">Grow-out A</span></td></tr>
+      <tr><td class="num">AW2</td><td>5</td><td class="num">1.78</td><td>1.6</td><td>1.9</td><td><span class="badge ba">Grow-out A</span></td></tr>
+      <tr><td class="num">AW3</td><td>4</td><td class="num">1.90</td><td>1.7</td><td>2.2</td><td><span class="badge ba">Grow-out A</span></td></tr>
+      <tr><td class="num">AW4</td><td>5</td><td class="num">1.76</td><td>1.5</td><td>2.0</td><td><span class="badge ba">Grow-out A</span></td></tr>
+      <tr><td class="num">AW5</td><td>4</td><td class="num">1.80</td><td>1.7</td><td>2.0</td><td><span class="badge ba">Grow-out A</span></td></tr>
+      <tr><td class="num">AW6</td><td>4</td><td class="num">1.90</td><td>1.8</td><td>2.0</td><td><span class="badge ba">Grow-out A</span></td></tr>
+      <tr><td class="num">BW1</td><td>3</td><td class="num">1.97</td><td>1.9</td><td>2.0</td><td><span class="badge bg">Grow-out B</span></td></tr>
+      <tr><td class="num">BW2</td><td>4</td><td class="num">1.98</td><td>1.7</td><td>2.2</td><td><span class="badge bg">Grow-out B</span></td></tr>
+      <tr><td class="num">BW3</td><td>3</td><td class="num">1.83</td><td>1.7</td><td>2.0</td><td><span class="badge bg">Grow-out B</span></td></tr>
+      <tr><td class="num">BW4</td><td>2</td><td class="num">2.25</td><td>2.2</td><td>2.3</td><td><span class="badge bg">Near market</span></td></tr>
+      <tr><td class="num">CW1</td><td>3</td><td class="num">2.00</td><td>1.9</td><td>2.1</td><td><span class="badge bb">Grow-out C</span></td></tr>
+      <tr><td class="num">CW2</td><td>3</td><td class="num">2.03</td><td>1.9</td><td>2.2</td><td><span class="badge bb">Grow-out C</span></td></tr>
+      <tr><td class="num">CW3</td><td>3</td><td class="num">2.00</td><td>1.9</td><td>2.1</td><td><span class="badge bb">Grow-out C</span></td></tr>
+      <tr><td class="num">CW4</td><td>3</td><td class="num">2.00</td><td>1.9</td><td>2.1</td><td><span class="badge bb">Grow-out C</span></td></tr>
+      <tr><td class="num">DW5</td><td>4</td><td class="num">2.00</td><td>1.9</td><td>2.2</td><td><span class="badge" style="background:#EEE8F8;color:#5A3E9A">Grow-out D</span></td></tr>
+      <tr><td class="num">DW6</td><td>4</td><td class="num">2.05</td><td>1.9</td><td>2.2</td><td><span class="badge" style="background:#EEE8F8;color:#5A3E9A">Grow-out D</span></td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ─── GOATS ──────────────────────────────────────────── -->
+<div id="page-goats" class="page">
+  <div class="page-eyebrow">Livestock</div>
+  <div class="page-title">Goats</div>
+  <div class="page-sub">Daily records — live from Google Sheets · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/15lxAmy6Wbx9sR3eNvlrcopPBFjBtzh_3Mz7_0bI7E1E" target="_blank">✏️ Edit sheet</a></div>
+  <div id="g-loading" class="loading-wrap"><div class="spinner"></div>Loading goat data…</div>
+  <div id="g-err" class="err-bar" style="display:none"></div>
+  <div id="g-content" style="display:none">
+    <div class="metrics" id="g-metrics"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Goat headcount log</span><span class="card-pill" id="g-count">0 records</span></div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Date</th><th>By</th><th>Total</th><th>Preg.</th><th>Bucks</th><th>Does</th><th>Weaners ♂</th><th>Weaners ♀</th><th>Kids</th><th>Births</th><th>Deaths</th><th>Feed</th><th>Notes</th></tr></thead>
+        <tbody id="g-table"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SHEEP ─────────────────────────────────────────── -->
+<div id="page-sheep" class="page">
+  <div class="page-eyebrow">Livestock</div>
+  <div class="page-title">Sheep</div>
+  <div class="page-sub">Daily records — live from Google Sheets · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1XqLGzwzoYANmnIwzcFIhyw16tZyayO5v-Itei7khL6Q" target="_blank">✏️ Edit sheet</a></div>
+  <div id="s-loading" class="loading-wrap"><div class="spinner"></div>Loading sheep data…</div>
+  <div id="s-err" class="err-bar" style="display:none"></div>
+  <div id="s-content" style="display:none">
+    <div class="metrics" id="s-metrics"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Sheep headcount log</span><span class="card-pill" id="s-count">0 records</span></div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Date</th><th>By</th><th>Total</th><th>Preg.</th><th>Rams</th><th>Ewes</th><th>Weaners</th><th>Lambs</th><th>Births</th><th>Deaths</th><th>Feed</th><th>Notes</th></tr></thead>
+        <tbody id="s-table"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── HEALTH ─────────────────────────────────────────── -->
+<div id="page-health" class="page">
+  <div class="page-eyebrow">Animal Care</div>
+  <div class="page-title">Health Records</div>
+  <div class="page-sub">Vaccines, illness and treatments · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1vF7iJ55QrrdH0LNGPjIwIzs7ESV9q6_dY40_Idkd4ZI" target="_blank">✏️ Edit sheet</a></div>
+  <div id="h-loading" class="loading-wrap"><div class="spinner"></div>Loading health data…</div>
+  <div id="h-err" class="err-bar" style="display:none"></div>
+  <div id="h-content" style="display:none">
+    <div class="metrics" id="h-metrics"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">All health events</span><span class="card-pill" id="h-count">0 records</span></div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Date</th><th>Species</th><th>Tag</th><th>Condition</th><th>Treatment</th><th>Status</th><th>Cost</th><th>By</th></tr></thead>
+        <tbody id="h-table"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SALES ─────────────────────────────────────────── -->
+<div id="page-sales" class="page">
+  <div class="page-eyebrow">Finance</div>
+  <div class="page-title">Sales Register</div>
+  <div class="page-sub">All revenue — rabbit meat, Granaburst, produce · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1spqRzXcMdGvYATMKCLbzXsY5lu0WJ0oF_KGimuIhzb0" target="_blank">✏️ Edit sheet</a></div>
+  <div id="sl-loading" class="loading-wrap"><div class="spinner"></div>Loading sales data…</div>
+  <div id="sl-err" class="err-bar" style="display:none"></div>
+  <div id="sl-content" style="display:none">
+    <div class="metrics" id="sl-metrics"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">All sales</span><span class="card-pill" id="sl-count">0 records</span></div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Date</th><th>Client</th><th>Item</th><th>Qty</th><th>Unit</th><th>Price</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
+        <tbody id="sl-table"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── ORCHARDS ──────────────────────────────────────── -->
+<div id="page-orchards" class="page">
+  <div class="page-eyebrow">Orchards</div>
+  <div class="page-title">Orchard Activities</div>
+  <div class="page-sub">Watering, fertilising, treatments · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1iHXPNp-qE9KreUj-TG9aFAwmNlCt-5B2Po_cmTJWxow" target="_blank">✏️ Edit sheet</a></div>
+  <div id="o-loading" class="loading-wrap"><div class="spinner"></div>Loading orchard data…</div>
+  <div id="o-err" class="err-bar" style="display:none"></div>
+  <div id="o-content" style="display:none">
+    <div class="crop-grid" id="o-crop-cards"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Activity log</span><span class="card-pill" id="o-count">0 records</span></div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Date</th><th>Crop</th><th>Block</th><th>Activity</th><th>Product</th><th>Rate/Qty</th><th>Staff</th><th>Cost</th><th>Notes</th></tr></thead>
+        <tbody id="o-table"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── YIELD ─────────────────────────────────────────── -->
+<div id="page-yield" class="page">
+  <div class="page-eyebrow">Orchards</div>
+  <div class="page-title">Yield Records</div>
+  <div class="page-sub">Harvest logs by crop · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/10xjTuUY9twqyqwWV0lZJsy5u2bbZcBD3jmhDkUs0mGQ" target="_blank">✏️ Edit sheet</a></div>
+  <div id="y-loading" class="loading-wrap"><div class="spinner"></div>Loading yield data…</div>
+  <div id="y-err" class="err-bar" style="display:none"></div>
+  <div id="y-content" style="display:none">
+    <div class="metrics" id="y-metrics"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Harvest log</span></div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Date</th><th>Crop</th><th>Block</th><th>Qty (kg)</th><th>Grade</th><th>Revenue</th><th>Status</th><th>Buyer</th><th>Notes</th></tr></thead>
+        <tbody id="y-table"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── ALL SHEETS ─────────────────────────────────────── -->
+<div id="page-sheets" class="page">
+  <div class="page-eyebrow">Data</div>
+  <div class="page-title">All Google Sheets</div>
+  <div class="page-sub">Direct links to every data source — anyone with the link can edit</div>
+  <div class="g2">
+    <a href="https://docs.google.com/spreadsheets/d/1i-9acn1oWUYnD3YGgk2IP4Msw2jJk2_9fby5iL3Mge0" target="_blank" class="card" style="text-decoration:none;color:inherit;display:block;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div class="card-header"><span class="card-title">🐇 Rabbit Headcounts</span><span class="card-pill">Daily</span></div>
+      <p style="font-size:13px;color:var(--ink2);margin-bottom:8px">Total rabbits, births, deaths, kits, pregnant does, feed. Updated daily by Kanjara Kudakwashe or via Cowork WhatsApp extraction.</p>
+      <span style="font-size:12px;color:var(--green)">docs.google.com/spreadsheets/d/1i-9acn1oWUYnD3YGgk2IP4Msw2jJk2… →</span>
+    </a>
+    <a href="https://docs.google.com/spreadsheets/d/15lxAmy6Wbx9sR3eNvlrcopPBFjBtzh_3Mz7_0bI7E1E" target="_blank" class="card" style="text-decoration:none;color:inherit;display:block;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div class="card-header"><span class="card-title">🐐 Goat Records</span><span class="card-pill">Daily</span></div>
+      <p style="font-size:13px;color:var(--ink2);margin-bottom:8px">Goat headcounts, kids, deaths, feed. Updated by Nyasha Gumbo, Jericho Mano or Cowork.</p>
+      <span style="font-size:12px;color:var(--green)">docs.google.com/spreadsheets/d/15lxAmy6Wbx9sR3eNvlrco… →</span>
+    </a>
+    <a href="https://docs.google.com/spreadsheets/d/1XqLGzwzoYANmnIwzcFIhyw16tZyayO5v-Itei7khL6Q" target="_blank" class="card" style="text-decoration:none;color:inherit;display:block;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div class="card-header"><span class="card-title">🐑 Sheep Records</span><span class="card-pill">Daily</span></div>
+      <p style="font-size:13px;color:var(--ink2);margin-bottom:8px">Sheep headcounts, lambs, deaths, feed. Updated by Simbarashe Ndoro, Jericho Mano or Cowork.</p>
+      <span style="font-size:12px;color:var(--green)">docs.google.com/spreadsheets/d/1XqLGzwzoYANmnIwzcFIh… →</span>
+    </a>
+    <a href="https://docs.google.com/spreadsheets/d/1vF7iJ55QrrdH0LNGPjIwIzs7ESV9q6_dY40_Idkd4ZI" target="_blank" class="card" style="text-decoration:none;color:inherit;display:block;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div class="card-header"><span class="card-title">🏥 Health Records</span><span class="card-pill warn">As needed</span></div>
+      <p style="font-size:13px;color:var(--ink2);margin-bottom:8px">Illness, disease, treatments and vaccines. Any staff member can add entries when something is observed.</p>
+      <span style="font-size:12px;color:var(--green)">docs.google.com/spreadsheets/d/1vF7iJ55QrrdH0LNGPjIw… →</span>
+    </a>
+    <a href="https://docs.google.com/spreadsheets/d/1spqRzXcMdGvYATMKCLbzXsY5lu0WJ0oF_KGimuIhzb0" target="_blank" class="card" style="text-decoration:none;color:inherit;display:block;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div class="card-header"><span class="card-title">💰 Sales Register</span><span class="card-pill">Per sale</span></div>
+      <p style="font-size:13px;color:var(--ink2);margin-bottom:8px">All sales — rabbit meat, Granaburst, breeders, produce. Updated by farm manager per transaction.</p>
+      <span style="font-size:12px;color:var(--green)">docs.google.com/spreadsheets/d/1spqRzXcMdGvYATMKCLb… →</span>
+    </a>
+    <a href="https://docs.google.com/spreadsheets/d/1iHXPNp-qE9KreUj-TG9aFAwmNlCt-5B2Po_cmTJWxow" target="_blank" class="card" style="text-decoration:none;color:inherit;display:block;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div class="card-header"><span class="card-title">🌳 Orchard Activities</span><span class="card-pill">Daily</span></div>
+      <p style="font-size:13px;color:var(--ink2);margin-bottom:8px">Watering, fertilising, pesticide, harvesting per block and crop. Updated by block staff or Cowork.</p>
+      <span style="font-size:12px;color:var(--green)">docs.google.com/spreadsheets/d/1iHXPNp-qE9KreUj-TG9aF… →</span>
+    </a>
+    <a href="https://docs.google.com/spreadsheets/d/10xjTuUY9twqyqwWV0lZJsy5u2bbZcBD3jmhDkUs0mGQ" target="_blank" class="card" style="text-decoration:none;color:inherit;display:block;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div class="card-header"><span class="card-title">🍌 Yield Records</span><span class="card-pill">Per harvest</span></div>
+      <p style="font-size:13px;color:var(--ink2);margin-bottom:8px">Harvest logs — kg, grade, revenue per crop. Updated by farm manager after each harvest.</p>
+      <span style="font-size:12px;color:var(--green)">docs.google.com/spreadsheets/d/10xjTuUY9twqyqwWV0lZJs… →</span>
+    </a>
+    <a href="https://docs.google.com/spreadsheets/d/1swIJyxws_DvsNL1JzcOhpITdxQCiHxErMnhhPrhD7b0" target="_blank" class="card" style="text-decoration:none;color:inherit;display:block;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div class="card-header"><span class="card-title">📋 Data Index</span><span class="card-pill">Reference</span></div>
+      <p style="font-size:13px;color:var(--ink2);margin-bottom:8px">Master directory of all sheets with links, owners and update frequencies.</p>
+      <span style="font-size:12px;color:var(--green)">docs.google.com/spreadsheets/d/1swIJyxws_DvsNL1Jzc… →</span>
+    </a>
+  </div>
+</div>
+
+</div><!-- /main-inner -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// SHEET IDs — update these if you ever recreate the sheets
+// ═══════════════════════════════════════════════════════════
+const SHEETS = {
+  rabbits:  '1i-9acn1oWUYnD3YGgk2IP4Msw2jJk2_9fby5iL3Mge0',
+  goats:    '15lxAmy6Wbx9sR3eNvlrcopPBFjBtzh_3Mz7_0bI7E1E',
+  sheep:    '1XqLGzwzoYANmnIwzcFIhyw16tZyayO5v-Itei7khL6Q',
+  health:   '1vF7iJ55QrrdH0LNGPjIwIzs7ESV9q6_dY40_Idkd4ZI',
+  sales:    '1spqRzXcMdGvYATMKCLbzXsY5lu0WJ0oF_KGimuIhzb0',
+  orchards: '1iHXPNp-qE9KreUj-TG9aFAwmNlCt-5B2Po_cmTJWxow',
+  yield:    '10xjTuUY9twqyqwWV0lZJsy5u2bbZcBD3jmhDkUs0mGQ',
+};
+function csvUrl(id) {
+  return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CSV PARSER
+// ═══════════════════════════════════════════════════════════
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  return lines.slice(1).map(line => {
+    // handle quoted fields
+    const vals = []; let cur = ''; let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { vals.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    vals.push(cur.trim());
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (vals[i] || '').replace(/^"|"$/g, '').trim(); });
+    return obj;
+  }).filter(row => Object.values(row).some(v => v));
+}
+
+// ═══════════════════════════════════════════════════════════
+// FETCH HELPER
+// ═══════════════════════════════════════════════════════════
+async function fetchSheet(key) {
+  const res = await fetch(csvUrl(SHEETS[key]));
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  return parseCSV(text);
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILITY
+// ═══════════════════════════════════════════════════════════
+function fmtDate(d) {
+  if (!d) return '—';
+  const p = d.split('-');
+  if (p.length === 3) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const m = parseInt(p[1]) - 1;
+    return `${parseInt(p[2])} ${months[m] || p[1]} ${p[0]}`;
+  }
+  return d;
+}
+function num(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+function money(v) { return '$' + num(v).toFixed(2); }
+function setHTML(id, h) { const el = document.getElementById(id); if (el) el.innerHTML = h; }
+function show(id) { const el = document.getElementById(id); if (el) el.style.display = ''; }
+function hide(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+function statusBadge(s) {
+  s = (s||'').toLowerCase();
+  if (s.includes('paid') || s.includes('treated') || s.includes('recovering') || s.includes('vet')) return `<span class="badge bg">${s}</span>`;
+  if (s.includes('pending') || s.includes('balance') || s.includes('monitor')) return `<span class="badge ba">${s}</span>`;
+  if (s.includes('active') || s.includes('deceased') || s.includes('dead')) return `<span class="badge br">${s}</span>`;
+  return `<span class="badge bk">${s}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function nav(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+function setTab(prefix, id, btn) {
+  const pg = btn.closest('.page');
+  pg.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  pg.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(prefix + '-' + id).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════
+// STORED DATA
+// ═══════════════════════════════════════════════════════════
+const DB = { rabbits:[], goats:[], sheep:[], health:[], sales:[], orchards:[], yield:[] };
+
+// ═══════════════════════════════════════════════════════════
+// SYNC ALL
+// ═══════════════════════════════════════════════════════════
+async function syncAll() {
+  const btn = document.getElementById('sync-btn');
+  const status = document.getElementById('sync-status');
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spinner" style="width:13px;height:13px;border-width:2px"></div> Syncing…`;
+  status.className = 'sync-status';
+  status.textContent = 'Fetching all 7 sheets…';
+
+  const keys = Object.keys(DB);
+  let ok = 0, fail = 0;
+  await Promise.allSettled(keys.map(async key => {
+    try {
+      DB[key] = await fetchSheet(key);
+      ok++;
+    } catch(e) {
+      fail++;
+      console.warn(`Sheet "${key}" failed:`, e.message);
+    }
+  }));
+
+  btn.disabled = false;
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg> Refresh from Sheets`;
+
+  if (fail === 0) {
+    status.className = 'sync-status ok';
+    const total = keys.reduce((s,k) => s + DB[k].length, 0);
+    status.textContent = `✓ ${total} rows across 7 sheets · ${new Date().toLocaleTimeString()}`;
+  } else {
+    status.className = 'sync-status err';
+    status.textContent = `${ok} sheets ok · ${fail} failed — make sure sheets are set to "Anyone with link can view"`;
+    document.getElementById('dash-err').style.display = '';
+    document.getElementById('dash-err').innerHTML = `<strong>${fail} sheet(s) failed to load.</strong> Open each Google Sheet → Share → set to <em>"Anyone with the link can view"</em>, then click Refresh.`;
+  }
+
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER ALL PAGES
+// ═══════════════════════════════════════════════════════════
+function renderAll() {
+  renderDashboard();
+  renderRabbits();
+  renderGoats();
+  renderSheep();
+  renderHealth();
+  renderSales();
+  renderOrchards();
+  renderYield();
+  renderDoes();
+}
+
+// ─── DASHBOARD ─────────────────────────────────────────────
+function renderDashboard() {
+  hide('dash-loading');
+  show('dash-content');
+
+  const rabs  = DB.rabbits;
+  const goats = DB.goats;
+  const sheep = DB.sheep;
+  const sales = DB.sales;
+  const health = DB.health;
+
+  const latestR = rabs[0] || {};
+  const latestG = goats[0] || {};
+  const latestS = sheep[0] || {};
+
+  const rTotal  = num(latestR['Total Rabbits'])  || num(latestR['Total_Rabbits'])  || 858;
+  const rPreg   = num(latestR['Pregnant Does'])  || 101;
+  const rMale   = num(latestR['Male Adults'])    || 14;
+  const rFem    = num(latestR['Female Adults'])  || 161;
+  const rKitsM  = num(latestR['Kits Male'])      || 0;
+  const rKitsF  = num(latestR['Kits Female'])    || 0;
+
+  const gTotal  = num(latestG['Total Goats'])    || 147;
+  const sTotal  = num(latestS['Total Sheep'])    || 53;
+
+  const totalRevenue = sales.reduce((s,r) => s + num(r['Total USD']), 0);
+  const pendingAmt   = sales.filter(r => (r['Payment Status']||'').toLowerCase().includes('pending') || (r['Payment Status']||'').toLowerCase().includes('balance')).reduce((s,r) => s + num(r['Balance USD']), 0);
+  const activeAlerts = health.filter(r => (r['Status']||'').toLowerCase() === 'active').length;
+  const deceased     = health.filter(r => (r['Status']||'').toLowerCase() === 'deceased').length;
+
+  // Dashboard metrics
+  setHTML('dash-metrics', `
+    <div class="metric accent"><div class="metric-label">Rabbits</div><div class="metric-value">${rTotal.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">Pregnant does</div><div class="metric-value">${rPreg}</div></div>
+    <div class="metric"><div class="metric-label">Kits</div><div class="metric-value">${rKitsM + rKitsF}</div></div>
+    <div class="metric"><div class="metric-label">Goats</div><div class="metric-value">${gTotal}</div></div>
+    <div class="metric"><div class="metric-label">Sheep</div><div class="metric-value">${sTotal}</div></div>
+    <div class="metric accent"><div class="metric-label">Total revenue</div><div class="metric-value">${money(totalRevenue)}</div></div>
+    <div class="metric warn"><div class="metric-label">Pending</div><div class="metric-value">${money(pendingAmt)}</div></div>
+    ${activeAlerts > 0 ? `<div class="metric danger"><div class="metric-label">Active alerts</div><div class="metric-value">${activeAlerts}</div></div>` : `<div class="metric"><div class="metric-label">Health issues</div><div class="metric-value">${deceased} deceased</div></div>`}
+  `);
+
+  // Herd table
+  const latestRDate = latestR['Date'] || '—';
+  document.getElementById('dash-date-pill').textContent = fmtDate(latestRDate);
+  setHTML('dash-herd', `
+    <tr><td><strong>Rabbits</strong></td><td class="num">${rTotal.toLocaleString()}</td><td>${rMale}</td><td>${rFem}</td><td>${(rKitsM+rKitsF)} kits</td><td>${rPreg}</td></tr>
+    <tr><td><strong>Goats</strong></td><td class="num">${gTotal}</td><td>${num(latestG['Adult Bucks'])||6}</td><td>${num(latestG['Adult Does'])||79}</td><td>${(num(latestG['Kids'])||39)} kids</td><td>${num(latestG['Pregnant Does'])||21}</td></tr>
+    <tr><td><strong>Sheep</strong></td><td class="num">${sTotal}</td><td>${num(latestS['Adult Rams'])||2}</td><td>${num(latestS['Adult Ewes'])||34}</td><td>${(num(latestS['Lambs'])||2)} lambs</td><td>${num(latestS['Pregnant Ewes'])||11}</td></tr>
+  `);
+
+  // Latest detail
+  const feed = latestR['Feed Used'] || '—';
+  const by   = latestR['Recorded By'] || '—';
+  setHTML('dash-detail', `
+    <tr><td style="color:var(--ink3)">Date</td><td class="num">${fmtDate(latestRDate)}</td></tr>
+    <tr><td style="color:var(--ink3)">Recorded by</td><td>${by}</td></tr>
+    <tr><td style="color:var(--ink3)">Total rabbits</td><td class="num c-green">${rTotal.toLocaleString()}</td></tr>
+    <tr><td style="color:var(--ink3)">Pregnant does</td><td class="num">${rPreg}</td></tr>
+    <tr><td style="color:var(--ink3)">Male adults</td><td class="num">${rMale}</td></tr>
+    <tr><td style="color:var(--ink3)">Female adults</td><td class="num">${rFem}</td></tr>
+    <tr><td style="color:var(--ink3)">Kits (M / F)</td><td class="num">${rKitsM} / ${rKitsF}</td></tr>
+    <tr><td style="color:var(--ink3)">Births today</td><td class="num c-green">${num(latestR['Births Male'])+num(latestR['Births Female'])}</td></tr>
+    <tr><td style="color:var(--ink3)">Deaths today</td><td class="num ${num(latestR['Deaths Male'])+num(latestR['Deaths Female'])>0?'c-red':''}">${num(latestR['Deaths Male'])+num(latestR['Deaths Female'])}</td></tr>
+    <tr><td style="color:var(--ink3)">Feed used</td><td style="font-size:12px">${feed}</td></tr>
+  `);
+
+  // Health alerts
+  const activeH = health.filter(r => (r['Status']||'').toLowerCase() === 'active');
+  if (activeH.length) {
+    document.getElementById('dash-alert-pill').style.display = '';
+    document.getElementById('dash-alert-pill').textContent = `${activeH.length} active`;
+  }
+  setHTML('dash-health-content', activeH.length
+    ? '<table><thead><tr><th>Date</th><th>Species</th><th>Tag</th><th>Condition</th><th>Status</th></tr></thead><tbody>' +
+      activeH.map(r => `<tr><td>${fmtDate(r['Date'])}</td><td>${r['Species']}</td><td>${r['Animal Tag']}</td><td>${r['Condition']}</td><td>${statusBadge(r['Status'])}</td></tr>`).join('') +
+      '</tbody></table>'
+    : `<div class="empty">No active alerts — <span class="c-green">all good</span></div>`
+  );
+
+  // Recent sales
+  const recentSales = [...sales].slice(0,6);
+  const revenueLabel = money(totalRevenue);
+  document.getElementById('dash-sales-pill').textContent = revenueLabel + ' total';
+  setHTML('dash-sales-content', recentSales.length
+    ? '<table><thead><tr><th>Date</th><th>Client</th><th>Item</th><th>Total</th><th>Status</th></tr></thead><tbody>' +
+      recentSales.map(r => `<tr><td>${fmtDate(r['Date'])}</td><td>${r['Client']||'—'}</td><td>${r['Item']}</td><td class="num c-green">${money(r['Total USD'])}</td><td>${statusBadge(r['Payment Status'])}</td></tr>`).join('') +
+      '</tbody></table>'
+    : '<div class="empty">No sales records</div>'
+  );
+
+  // Gaps check
+  const today = new Date().toISOString().slice(0,10);
+  const latestDate = latestR['Date'] || '';
+  const daysSince = latestDate ? Math.floor((new Date(today) - new Date(latestDate)) / 86400000) : 99;
+  if (daysSince > 1) {
+    show('dash-gaps');
+    document.getElementById('dash-gaps').innerHTML = `⚠️ <strong>Last rabbit entry: ${fmtDate(latestDate)}</strong> (${daysSince} day${daysSince>1?'s':''} ago). Open the <a href="https://docs.google.com/spreadsheets/d/${SHEETS.rabbits}" target="_blank" style="color:var(--amber)">Rabbit Sheet</a> to add today's data.`;
+  }
+  document.getElementById('dash-sub').textContent = `Live data from Google Sheets · Last rabbit entry: ${fmtDate(latestDate)} · ${DB.rabbits.length} rabbit records`;
+}
+
+// ─── RABBITS ──────────────────────────────────────────────
+function renderRabbits() {
+  const rows = DB.rabbits;
+  hide('r-loading');
+  if (!rows.length) { show('r-err'); document.getElementById('r-err').textContent = 'No data loaded — ensure the sheet is shared publicly.'; return; }
+  show('r-content');
+  document.getElementById('r-count').textContent = `${rows.length} records`;
+
+  const latest = rows[0];
+  const totalBirths = rows.reduce((s,r) => s + num(r['Births Male']) + num(r['Births Female']), 0);
+  const totalDeaths = rows.reduce((s,r) => s + num(r['Deaths Male']) + num(r['Deaths Female']), 0);
+  setHTML('r-metrics', `
+    <div class="metric accent"><div class="metric-label">Latest total</div><div class="metric-value">${num(latest['Total Rabbits']).toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">Pregnant does</div><div class="metric-value">${latest['Pregnant Does']||'—'}</div></div>
+    <div class="metric"><div class="metric-label">Kits</div><div class="metric-value">${num(latest['Kits Male'])+num(latest['Kits Female'])}</div></div>
+    <div class="metric warn"><div class="metric-label">Total births</div><div class="metric-value">${totalBirths}</div></div>
+    <div class="metric danger"><div class="metric-label">Total deaths</div><div class="metric-value">${totalDeaths}</div></div>
+    <div class="metric"><div class="metric-label">Submissions</div><div class="metric-value">${rows.length}</div></div>
+  `);
+
+  setHTML('r-table', rows.map(r => {
+    const bornT = num(r['Births Male'])+num(r['Births Female']);
+    const diedT = num(r['Deaths Male'])+num(r['Deaths Female']);
+    const lostT = num(r['Lost Male'])+num(r['Lost Female']);
+    return `<tr>
+      <td>${fmtDate(r['Date'])}</td>
+      <td style="font-size:12px;color:var(--ink3)">${r['Recorded By']||'—'}</td>
+      <td class="num ${num(r['Total Rabbits'])>800?'c-green':''}">${r['Total Rabbits']||'—'}</td>
+      <td class="num">${r['Pregnant Does']||'—'}</td>
+      <td class="num">${r['Male Adults']||'—'}</td>
+      <td class="num">${r['Female Adults']||'—'}</td>
+      <td class="num">${r['Kits Male']||'0'}</td>
+      <td class="num">${r['Kits Female']||'0'}</td>
+      <td class="num ${bornT>0?'c-green':''}">${r['Births Male']||'0'}</td>
+      <td class="num ${bornT>0?'c-green':''}">${r['Births Female']||'0'}</td>
+      <td class="num ${num(r['Deaths Male'])>0?'c-red':''}">${r['Deaths Male']||'0'}</td>
+      <td class="num ${num(r['Deaths Female'])>0?'c-red':''}">${r['Deaths Female']||'0'}</td>
+      <td class="num ${lostT>0?'c-amber':''}">${r['Lost Male']||'0'}</td>
+      <td class="num ${lostT>0?'c-amber':''}">${r['Lost Female']||'0'}</td>
+      <td class="num">${r['Slaughtered Male']||'0'}</td>
+      <td class="num">${r['Slaughtered Female']||'0'}</td>
+      <td style="font-size:12px;color:var(--ink3);max-width:160px">${r['Feed Used']||'—'}</td>
+      <td class="num">${r['Does Mated']||'0'}</td>
+    </tr>`;
+  }).join(''));
+}
+
+// ─── GOATS ────────────────────────────────────────────────
+function renderGoats() {
+  const rows = DB.goats;
+  hide('g-loading');
+  if (!rows.length) { show('g-err'); document.getElementById('g-err').textContent = 'No data — ensure sheet is shared publicly.'; return; }
+  show('g-content');
+  const latest = rows[0];
+  document.getElementById('g-count').textContent = `${rows.length} records`;
+  setHTML('g-metrics', `
+    <div class="metric accent"><div class="metric-label">Latest total</div><div class="metric-value">${latest['Total Goats']||'—'}</div></div>
+    <div class="metric"><div class="metric-label">Adult bucks</div><div class="metric-value">${latest['Adult Bucks']||'—'}</div></div>
+    <div class="metric"><div class="metric-label">Adult does</div><div class="metric-value">${latest['Adult Does']||'—'}</div></div>
+    <div class="metric"><div class="metric-label">Kids</div><div class="metric-value">${latest['Kids']||'—'}</div></div>
+    <div class="metric"><div class="metric-label">Pregnant</div><div class="metric-value">${latest['Pregnant Does']||'—'}</div></div>
+  `);
+  setHTML('g-table', rows.map(r => `<tr>
+    <td>${fmtDate(r['Date'])}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Recorded By']||'—'}</td>
+    <td class="num">${r['Total Goats']||'—'}</td>
+    <td class="num">${r['Pregnant Does']||'—'}</td>
+    <td class="num">${r['Adult Bucks']||'—'}</td>
+    <td class="num">${r['Adult Does']||'—'}</td>
+    <td class="num">${r['Male Weaners']||'—'}</td>
+    <td class="num">${r['Female Weaners']||'—'}</td>
+    <td class="num">${r['Kids']||'—'}</td>
+    <td class="num ${num(r['Births'])>0?'c-green':''}">${r['Births']||'0'}</td>
+    <td class="num ${num(r['Deaths'])>0?'c-red':''}">${r['Deaths']||'0'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Feed Used']||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Notes']||''}</td>
+  </tr>`).join(''));
+}
+
+// ─── SHEEP ────────────────────────────────────────────────
+function renderSheep() {
+  const rows = DB.sheep;
+  hide('s-loading');
+  if (!rows.length) { show('s-err'); document.getElementById('s-err').textContent = 'No data — ensure sheet is shared publicly.'; return; }
+  show('s-content');
+  const latest = rows[0];
+  document.getElementById('s-count').textContent = `${rows.length} records`;
+  setHTML('s-metrics', `
+    <div class="metric accent"><div class="metric-label">Latest total</div><div class="metric-value">${latest['Total Sheep']||'—'}</div></div>
+    <div class="metric"><div class="metric-label">Adult rams</div><div class="metric-value">${latest['Adult Rams']||'—'}</div></div>
+    <div class="metric"><div class="metric-label">Adult ewes</div><div class="metric-value">${latest['Adult Ewes']||'—'}</div></div>
+    <div class="metric"><div class="metric-label">Lambs</div><div class="metric-value">${latest['Lambs']||'—'}</div></div>
+    <div class="metric"><div class="metric-label">Pregnant</div><div class="metric-value">${latest['Pregnant Ewes']||'—'}</div></div>
+  `);
+  setHTML('s-table', rows.map(r => `<tr>
+    <td>${fmtDate(r['Date'])}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Recorded By']||'—'}</td>
+    <td class="num">${r['Total Sheep']||'—'}</td>
+    <td class="num">${r['Pregnant Ewes']||'—'}</td>
+    <td class="num">${r['Adult Rams']||'—'}</td>
+    <td class="num">${r['Adult Ewes']||'—'}</td>
+    <td class="num">${r['Weaners']||'—'}</td>
+    <td class="num">${r['Lambs']||'—'}</td>
+    <td class="num ${num(r['Births'])>0?'c-green':''}">${r['Births']||'0'}</td>
+    <td class="num ${num(r['Deaths'])>0?'c-red':''}">${r['Deaths']||'0'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Feed Used']||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Notes']||''}</td>
+  </tr>`).join(''));
+}
+
+// ─── HEALTH ───────────────────────────────────────────────
+function renderHealth() {
+  const rows = DB.health;
+  hide('h-loading');
+  if (!rows.length) { show('h-err'); document.getElementById('h-err').textContent = 'No data — ensure sheet is shared publicly.'; return; }
+  show('h-content');
+  const active    = rows.filter(r => (r['Status']||'').toLowerCase() === 'active').length;
+  const deceased  = rows.filter(r => (r['Status']||'').toLowerCase() === 'deceased').length;
+  const treated   = rows.filter(r => (r['Status']||'').toLowerCase() === 'treated').length;
+  document.getElementById('h-count').textContent = `${rows.length} records`;
+  setHTML('h-metrics', `
+    <div class="metric danger"><div class="metric-label">Active cases</div><div class="metric-value">${active}</div></div>
+    <div class="metric warn"><div class="metric-label">Deceased</div><div class="metric-value">${deceased}</div></div>
+    <div class="metric accent"><div class="metric-label">Treated / resolved</div><div class="metric-value">${treated}</div></div>
+    <div class="metric"><div class="metric-label">Total events</div><div class="metric-value">${rows.length}</div></div>
+  `);
+  setHTML('h-table', rows.map(r => `<tr>
+    <td>${fmtDate(r['Date'])}</td>
+    <td>${r['Species']||'—'}</td>
+    <td class="num">${r['Animal Tag']||'—'}</td>
+    <td style="max-width:200px">${r['Condition']||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3);max-width:200px">${r['Treatment']||'—'}</td>
+    <td>${statusBadge(r['Status'])}</td>
+    <td class="num">${r['Cost USD']&&r['Cost USD']!='0' ? money(r['Cost USD']) : '—'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Recorded By']||'—'}</td>
+  </tr>`).join(''));
+}
+
+// ─── SALES ────────────────────────────────────────────────
+function renderSales() {
+  const rows = DB.sales;
+  hide('sl-loading');
+  if (!rows.length) { show('sl-err'); document.getElementById('sl-err').textContent = 'No data — ensure sheet is shared publicly.'; return; }
+  show('sl-content');
+  document.getElementById('sl-count').textContent = `${rows.length} records`;
+  const total   = rows.reduce((s,r) => s + num(r['Total USD']), 0);
+  const paid    = rows.reduce((s,r) => s + num(r['Amount Paid USD']), 0);
+  const pending = rows.reduce((s,r) => s + num(r['Balance USD']), 0);
+  const rabbitRev = rows.filter(r => (r['Item']||'').toLowerCase().includes('rabbit')).reduce((s,r) => s + num(r['Total USD']), 0);
+  const granaRev  = rows.filter(r => (r['Item']||'').toLowerCase().includes('gran')).reduce((s,r) => s + num(r['Total USD']), 0);
+  setHTML('sl-metrics', `
+    <div class="metric accent"><div class="metric-label">Total invoiced</div><div class="metric-value">${money(total)}</div></div>
+    <div class="metric accent"><div class="metric-label">Total paid</div><div class="metric-value">${money(paid)}</div></div>
+    <div class="metric warn"><div class="metric-label">Outstanding</div><div class="metric-value">${money(pending)}</div></div>
+    <div class="metric"><div class="metric-label">Rabbit meat</div><div class="metric-value">${money(rabbitRev)}</div></div>
+    <div class="metric"><div class="metric-label">Granaburst</div><div class="metric-value">${money(granaRev)}</div></div>
+    <div class="metric"><div class="metric-label">Transactions</div><div class="metric-value">${rows.length}</div></div>
+  `);
+  setHTML('sl-table', rows.map(r => `<tr>
+    <td>${fmtDate(r['Date'])}</td>
+    <td>${r['Client']||'—'}</td>
+    <td>${r['Item']||'—'}</td>
+    <td class="num">${r['Quantity']||'—'}</td>
+    <td style="color:var(--ink3)">${r['Unit']||'—'}</td>
+    <td class="num">${r['Unit Price USD']?money(r['Unit Price USD']):'—'}</td>
+    <td class="num c-green">${money(r['Total USD'])}</td>
+    <td class="num">${money(r['Amount Paid USD'])}</td>
+    <td class="num ${num(r['Balance USD'])>0?'c-amber':''}">${num(r['Balance USD'])>0?money(r['Balance USD']):'—'}</td>
+    <td>${statusBadge(r['Payment Status'])}</td>
+  </tr>`).join(''));
+}
+
+// ─── ORCHARDS ─────────────────────────────────────────────
+function renderOrchards() {
+  const rows = DB.orchards;
+  hide('o-loading');
+  if (!rows.length) { show('o-err'); document.getElementById('o-err').textContent = 'No data — ensure sheet is shared publicly.'; return; }
+  show('o-content');
+  document.getElementById('o-count').textContent = `${rows.length} records`;
+
+  // Crop summary cards
+  const crops = ['Bananas','Pawpaw','Coffee','Apples','Passion Fruit','Grapes','Macadamia','Lucerne'];
+  const cropInfo = {
+    'Bananas':       { emoji:'🍌', note:'A1 Sivio harvesting · A2 Murisa fertigation' },
+    'Pawpaw':        { emoji:'🌿', note:'A1 Sivio: 1,001 plants flowering · A2 Murisa: 504 plants growing' },
+    'Coffee':        { emoji:'☕', note:'A5 Sivio: 2,020 plants · A3 Murisa: 666 plants' },
+    'Apples':        { emoji:'🍎', note:'Block A3 — fruiting, many plants with fruit' },
+    'Passion Fruit': { emoji:'💜', note:'Block A4 — fruiting and flowering' },
+    'Grapes':        { emoji:'🍇', note:'Block A7 — 660 planted, 1,490 holes dug' },
+    'Macadamia':     { emoji:'🥜', note:'Block A5 — 228 plants growing' },
+    'Lucerne':       { emoji:'🌱', note:'44 lines — primary rabbit feed' },
+  };
+  const latestByCrop = {};
+  rows.forEach(r => { if (!latestByCrop[r['Crop']]) latestByCrop[r['Crop']] = r; });
+
+  setHTML('o-crop-cards', crops.filter(c => latestByCrop[c] || cropInfo[c]).map(c => {
+    const info = cropInfo[c] || {};
+    const latest = latestByCrop[c] || {};
+    const act = latest['Activity Type'] || 'No recent activity';
+    return `<div class="card">
+      <div class="card-header"><span class="card-title">${info.emoji||'🌿'} ${c}</span><span class="card-pill">${act}</span></div>
+      <p style="font-size:12px;color:var(--ink3);margin-bottom:6px">${info.note||''}</p>
+      ${latest['Date'] ? `<p style="font-size:11px;color:var(--ink3)">Last recorded: ${fmtDate(latest['Date'])} · ${latest['Staff']||'—'}</p>` : ''}
+    </div>`;
+  }).join(''));
+
+  setHTML('o-table', rows.map(r => `<tr>
+    <td>${fmtDate(r['Date'])}</td>
+    <td>${r['Crop']||'—'}</td>
+    <td style="color:var(--ink3)">${r['Block']||'—'}</td>
+    <td>${r['Activity Type']||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Product Used']||'—'}</td>
+    <td style="font-size:12px">${r['Quantity / Rate']||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Staff']||'—'}</td>
+    <td class="num">${r['Cost USD']&&r['Cost USD']!='0'?money(r['Cost USD']):'—'}</td>
+    <td style="font-size:12px;color:var(--ink3);max-width:180px">${r['Notes']||''}</td>
+  </tr>`).join(''));
+}
+
+// ─── YIELD ────────────────────────────────────────────────
+function renderYield() {
+  const rows = DB.yield;
+  hide('y-loading');
+  if (!rows.length) { show('y-err'); document.getElementById('y-err').textContent = 'No data — ensure sheet is shared publicly.'; return; }
+  show('y-content');
+  const totalKg  = rows.reduce((s,r) => s + num(r['Quantity KG']), 0);
+  const totalRev = rows.reduce((s,r) => s + num(r['Revenue USD']), 0);
+  setHTML('y-metrics', `
+    <div class="metric accent"><div class="metric-label">Total harvested</div><div class="metric-value">${totalKg.toLocaleString()}<span class="metric-unit"> kg</span></div></div>
+    <div class="metric accent"><div class="metric-label">Total revenue</div><div class="metric-value">${money(totalRev)}</div></div>
+    <div class="metric"><div class="metric-label">Harvests recorded</div><div class="metric-value">${rows.length}</div></div>
+  `);
+  setHTML('y-table', rows.map(r => `<tr>
+    <td>${fmtDate(r['Date'])}</td>
+    <td>${r['Crop']||'—'}</td>
+    <td style="color:var(--ink3)">${r['Block']||'—'}</td>
+    <td class="num">${num(r['Quantity KG']).toLocaleString()} kg</td>
+    <td>${r['Quality Grade']?`<span class="badge ${r['Quality Grade']==='A'?'bg':r['Quality Grade']==='B'?'ba':'br'}">Grade ${r['Quality Grade']}</span>`:'—'}</td>
+    <td class="num c-green">${money(r['Revenue USD'])}</td>
+    <td>${statusBadge(r['Payment Status'])}</td>
+    <td style="font-size:12px">${r['Buyer']||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Notes']||''}</td>
+  </tr>`).join(''));
+}
+
+// ─── DOES (static) ────────────────────────────────────────
+function renderDoes() {
+  const does = [
+    ['Z021','1C','NZ White','31 Mar 2026','19 Feb 2026'],['Z088','1D','NZ White','18 Jan 2026','12 Jan 2025'],
+    ['Z027','1E','NZ White','04 Jun 2026','02 Nov 2026'],['Z025','1G','NZ White','06 Apr 2026','19 Dec 2026'],
+    ['Z026','1F','NZ White','16 Mar 2026','08 Jan 2026'],['Z022','1H','NZ White','03 Jun 2026','03 Mar 2026'],
+    ['Z020','1J','NZ White','18 Mar 2026','03 Jan 2026'],['Z019','1K','NZ White','30 Mar 2026','07 Nov 2025'],
+    ['Z013','1M','NZ White','31 Mar 2026','05 Jan 2026'],['Z033','2B','NZ White','16 Mar 2026','13 Jan 2026'],
+    ['Z036','2F','NZ White','30 Mar 2026','16 Feb 2026'],['U065','2G','NZ White','31 Mar 2026','22 Feb 2026'],
+    ['Z038','2H','NZ White','30 Mar 2026','08 Nov 2025'],['Z040','2K','NZ White','18 Mar 2026','13 Mar 2026'],
+    ['U059','3A','NZ White','16 Mar 2026','19 Feb 2026'],['Z045','3F','NZ White','31 Mar 2026','25 Feb 2026'],
+    ['Z003','4B','NZ White','25 Feb 2026','30 Mar 2026'],['Z002','4C','NZ White','16 Mar 2026','21 Feb 2026'],
+    ['Z095','4G','NZ White','25 Feb 2026','25 Mar 2026'],['Z009','4K','NZ White','31 Mar 2026','23 Mar 2025'],
+    ['Z004','4M','NZ White','25 Feb 2026','29 Mar 2026'],['U026','6B','NZ White','25 Feb 2026','30 Mar 2026'],
+    ['U029','6E','NZ White','18 Mar 2026','13 Mar 2026'],['U031','6G','NZ White','18 Mar 2026','15 Mar 2026'],
+    ['U032','6J','NZ White','18 Mar 2026','17 Mar 2026'],['Z015','7A','NZ White','16 Apr 2026','05 Jan 2026'],
+    ['U018','7E','Californian White','18 Mar 2026','05 Jan 2026'],['U019','7F','Californian White','16 Mar 2026','17 Jan 2026'],
+    ['U022','7K','Californian White','18 Mar 2026','05 Jan 2026'],['U013','7L','Californian White','03 Feb 2026','03 Apr 2026'],
+    ['U024','7M','Californian White','02 Mar 2026','03 Apr 2026'],['Z018','8A','NZ White','17 Feb 2026','24 Mar 2026'],
+    ['U003','8C','NZ White','18 Mar 2026','10 Jan 2026'],['U006','8F','NZ White','30 Mar 2026','19 Feb 2026'],
+    ['U005','8G','NZ White','09 Mar 2026','05 Jan 2026'],['Z010','9A','NZ White','01 Apr 2026','17 Jan 2026'],
+    ['U066','9F','NZ White','01 Apr 2026','26 Mar 2026'],['U077','9G','NZ White','01 Apr 2026','16 Mar 2026'],
+    ['U057','9J','NZ White','31 Mar 2026','09 Feb 2026'],['U056','9K','NZ White','06 Apr 2026','19 Mar 2026'],
+    ['U055','9L','NZ White','23 Feb 2026','25 Mar 2026'],['Z086','12G','Cinnamon','01 Apr 2026','18 Jan 2026'],
+    ['Z072','12L','Californian White','09 Mar 2026','09 Feb 2026'],['Z068','12M','Californian White','31 Mar 2026','23 Feb 2026'],
+    ['D074','17H','Californian White','18 Feb 2026','23 Mar 2026'],['D064','18A','NZ White','18 Feb 2026','23 Mar 2026'],
+    ['F001','19K','NZ White','19 Feb 2026','20 Mar 2026'],['D027','19L','NZ White','19 Feb 2026','18 Mar 2026'],
+  ];
+  setHTML('does-table', does.map(([tag,cage,breed,mated,birth]) =>
+    `<tr>
+      <td class="num">${tag}</td><td>${cage}</td>
+      <td><span class="badge ${breed==='NZ White'?'bg':'bb'}">${breed}</span></td>
+      <td style="color:var(--ink3)">${mated}</td>
+      <td style="color:var(--ink3)">${birth||'—'}</td>
+    </tr>`
+  ).join(''));
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  renderDoes();
+  syncAll();
+});
+</script>
+</body>
+</html>

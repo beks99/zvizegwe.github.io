@@ -600,8 +600,13 @@ const SHEETS = {
   orchards: '1iHXPNp-qE9KreUj-TG9aFAwmNlCt-5B2Po_cmTJWxow',
   yield:    '10xjTuUY9twqyqwWV0lZJsy5u2bbZcBD3jmhDkUs0mGQ',
 };
+// Two CORS proxies — tries first, falls back to second if needed
+const PROXIES = [
+  id => `https://corsproxy.io/?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`)}`,
+  id => `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`)}`,
+];
 function csvUrl(id) {
-  return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`;
+  return PROXIES[0](id);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -631,10 +636,19 @@ function parseCSV(text) {
 // FETCH HELPER
 // ═══════════════════════════════════════════════════════════
 async function fetchSheet(key) {
-  const res = await fetch(csvUrl(SHEETS[key]));
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
-  return parseCSV(text);
+  const id = SHEETS[key];
+  for (let i = 0; i < PROXIES.length; i++) {
+    try {
+      const res = await fetch(PROXIES[i](id));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      if (text.includes('<!DOCTYPE') || text.includes('<html')) throw new Error('Got HTML not CSV');
+      return parseCSV(text);
+    } catch(e) {
+      if (i === PROXIES.length - 1) throw e;
+      console.warn(`Proxy ${i} failed for ${key}, trying next…`);
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -719,7 +733,7 @@ async function syncAll() {
     status.className = 'sync-status err';
     status.textContent = `${ok} sheets ok · ${fail} failed — make sure sheets are set to "Anyone with link can view"`;
     document.getElementById('dash-err').style.display = '';
-    document.getElementById('dash-err').innerHTML = `<strong>${fail} sheet(s) failed to load.</strong> Open each Google Sheet → Share → set to <em>"Anyone with the link can view"</em>, then click Refresh.`;
+    document.getElementById('dash-err').innerHTML = `<strong>${fail} sheet(s) failed to load.</strong> Make sure each Google Sheet is shared as <em>"Anyone with the link can view"</em>, then click Refresh. If the problem persists the CORS proxy may be temporarily down — try again in a minute.`;
   }
 
   renderAll();

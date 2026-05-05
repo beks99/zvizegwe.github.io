@@ -592,21 +592,16 @@ tbody tr:hover td { background: var(--cream); }
 // SHEET IDs — update these if you ever recreate the sheets
 // ═══════════════════════════════════════════════════════════
 const SHEETS = {
-  rabbits:  '1i-9acn1oWUYnD3YGgk2IP4Msw2jJk2_9fby5iL3Mge0',
-  goats:    '15lxAmy6Wbx9sR3eNvlrcopPBFjBtzh_3Mz7_0bI7E1E',
-  sheep:    '1XqLGzwzoYANmnIwzcFIhyw16tZyayO5v-Itei7khL6Q',
-  health:   '1vF7iJ55QrrdH0LNGPjIwIzs7ESV9q6_dY40_Idkd4ZI',
-  sales:    '1spqRzXcMdGvYATMKCLbzXsY5lu0WJ0oF_KGimuIhzb0',
-  orchards: '1iHXPNp-qE9KreUj-TG9aFAwmNlCt-5B2Po_cmTJWxow',
-  yield:    '10xjTuUY9twqyqwWV0lZJsy5u2bbZcBD3jmhDkUs0mGQ',
+  rabbits:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vQDwSweYqmZzClvdPdA0g4sunS0jpyZF4JAtpDyGwNagHvzpeUnnOsWNOFgRnvDEySup5V3z0JGiX_c/pub?gid=1483301337&single=true&output=csv',
+  goats:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vTDAYH3dymBuakeQruBUTbib_gjfbptuln3M-uPECFb0vi4WeqFI-8hPkzjnAIv5Ft7Y0KpcGY-l5Jz/pub?gid=1629444584&single=true&output=csv',
+  sheep:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQF5Gm4Uz_jKE_QoM6mseoHKQsGzDfJym0pyEhMn8TVaue3qeF2GIXv-IHPYQgY3DYoO-gS0tcc3U1X/pub?gid=37718171&single=true&output=csv',
+  health:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vTNmDLZSzVAMWspHGnNlUcWSp9FfVdd_SzDl-NQ-l2gwNLyKRVRNudMm-YhLle4wssmuJotcoW7Bd03/pub?gid=1462638392&single=true&output=csv',
+  sales:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQE074lh3k1j1UlVWtEsvoN4eHdKvYVoZinYxJ8gOl8SLPTYc7tuBGvXcJnmCnzovEgJBKoGfUdqiq7/pub?gid=199833556&single=true&output=csv',
+  orchards: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTk117IOc5zNwOtnjDWrPhPQKBi0F97NWu6Ie-tr_yPWqkx-Rp3GQY4-hcBMuBvT8e6ntKV4RTJibZK/pub?gid=1803548833&single=true&output=csv',
+  yield:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKwgpoPaYRJnytfbOpWqx-KAatQwI51uFn_tc9RBhl5OUWymRrOcgUg_6L1LTxp8X3_Ztb8mJ2lhin/pub?gid=959975502&single=true&output=csv',
 };
-// Two CORS proxies — tries first, falls back to second if needed
-const PROXIES = [
-  id => `https://corsproxy.io/?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`)}`,
-  id => `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`)}`,
-];
-function csvUrl(id) {
-  return PROXIES[0](id);
+function csvUrl(key) {
+  return SHEETS[key];
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -636,19 +631,11 @@ function parseCSV(text) {
 // FETCH HELPER
 // ═══════════════════════════════════════════════════════════
 async function fetchSheet(key) {
-  const id = SHEETS[key];
-  for (let i = 0; i < PROXIES.length; i++) {
-    try {
-      const res = await fetch(PROXIES[i](id));
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      if (text.includes('<!DOCTYPE') || text.includes('<html')) throw new Error('Got HTML not CSV');
-      return parseCSV(text);
-    } catch(e) {
-      if (i === PROXIES.length - 1) throw e;
-      console.warn(`Proxy ${i} failed for ${key}, trying next…`);
-    }
-  }
+  const res = await fetch(csvUrl(key));
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  if (text.trim().startsWith('<')) throw new Error('Got HTML instead of CSV — check sheet is published');
+  return parseCSV(text);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -733,7 +720,7 @@ async function syncAll() {
     status.className = 'sync-status err';
     status.textContent = `${ok} sheets ok · ${fail} failed — make sure sheets are set to "Anyone with link can view"`;
     document.getElementById('dash-err').style.display = '';
-    document.getElementById('dash-err').innerHTML = `<strong>${fail} sheet(s) failed to load.</strong> Make sure each Google Sheet is shared as <em>"Anyone with the link can view"</em>, then click Refresh. If the problem persists the CORS proxy may be temporarily down — try again in a minute.`;
+    document.getElementById('dash-err').innerHTML = `<strong>${fail} sheet(s) failed to load.</strong> Open each Google Sheet → Share → set to <em>"Anyone with the link can view"</em>, then click Refresh.`;
   }
 
   renderAll();

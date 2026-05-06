@@ -292,6 +292,8 @@ tbody tr:hover td { background: var(--cream); }
 
   <div class="nav-section">Finance</div>
   <button class="nav-item" onclick="nav('sales',this)"><span class="nav-dot"></span>Sales Register</button>
+  <button class="nav-item" onclick="nav('expenditure',this)"><span class="nav-dot"></span>Expenditure</button>
+  <button class="nav-item" onclick="nav('pl',this)"><span class="nav-dot"></span>Profit & Loss</button>
 
   <div class="nav-section">Orchards</div>
   <button class="nav-item" onclick="nav('orchards',this)"><span class="nav-dot"></span>Activities</button>
@@ -335,6 +337,20 @@ tbody tr:hover td { background: var(--cream); }
       <div class="card">
         <div class="card-header"><span class="card-title">Recent sales</span><span class="card-pill" id="dash-sales-pill">—</span></div>
         <div id="dash-sales-content"></div>
+      </div>
+    </div>
+    <div class="g3" style="margin-top:0">
+      <div class="card">
+        <div class="card-header"><span class="card-title" style="color:#2A7A5A">🐇 Rabbits</span></div>
+        <div style="position:relative;height:200px"><canvas id="chart-rabbits"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title" style="color:#B5700F">🐐 Goats</span></div>
+        <div style="position:relative;height:200px"><canvas id="chart-goats"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title" style="color:#2C6FA8">🐑 Sheep</span></div>
+        <div style="position:relative;height:200px"><canvas id="chart-sheep"></canvas></div>
       </div>
     </div>
   </div>
@@ -534,6 +550,73 @@ tbody tr:hover td { background: var(--cream); }
   </div>
 </div>
 
+<!-- ─── EXPENDITURE ──────────────────────────────────────── -->
+<div id="page-expenditure" class="page">
+  <div class="page-eyebrow">Finance</div>
+  <div class="page-title">Expenditure Register</div>
+  <div class="page-sub">All farm costs — live from Google Sheets · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1BoDI13SCrMTfrUqWloA6pXpFQXYSf_f4nCq9jcOpycs" target="_blank">✏️ Edit sheet</a></div>
+  <div id="ex-loading" class="loading-wrap"><div class="spinner"></div>Loading expenditure data…</div>
+  <div id="ex-err" class="err-bar" style="display:none"></div>
+  <div id="ex-content" style="display:none">
+    <div class="metrics" id="ex-metrics"></div>
+    <div class="g2" style="margin-bottom:18px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Spend by area</span></div>
+        <div style="position:relative;height:200px"><canvas id="chart-area"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Spend by category</span></div>
+        <div style="position:relative;height:200px"><canvas id="chart-cat"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Monthly spend — this month vs last month</span>
+        <span class="card-pill" id="ex-month-pill">—</span>
+      </div>
+      <div style="position:relative;height:220px"><canvas id="chart-monthly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">All transactions</span><span class="card-pill" id="ex-count">0 records</span></div>
+      <div class="table-scroll">
+        <table><thead><tr>
+          <th>Date</th><th>Activity</th><th>Area</th><th>Category</th><th>Amount</th><th>Person</th><th>Supplier</th><th>Method</th><th>Ref</th><th>Notes</th>
+        </tr></thead>
+        <tbody id="ex-table"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── P&L ───────────────────────────────────────────────── -->
+<div id="page-pl" class="page">
+  <div class="page-eyebrow">Finance</div>
+  <div class="page-title">Profit & Loss</div>
+  <div class="page-sub">Revenue vs expenditure by month and area</div>
+  <div id="pl-loading" class="loading-wrap"><div class="spinner"></div>Loading…</div>
+  <div id="pl-content" style="display:none">
+    <div class="metrics" id="pl-metrics"></div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-header"><span class="card-title">Monthly revenue vs costs</span></div>
+      <div style="position:relative;height:260px"><canvas id="chart-pl"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">P&amp;L by area</span></div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Area</th><th>Total costs</th><th>Revenue</th><th>Net</th></tr></thead>
+        <tbody id="pl-table"></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Monthly breakdown</span></div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Month</th><th>Revenue</th><th>Costs</th><th>Net</th><th>Margin</th></tr></thead>
+        <tbody id="pl-monthly-table"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ─── ALL SHEETS ─────────────────────────────────────── -->
 <div id="page-sheets" class="page">
   <div class="page-eyebrow">Data</div>
@@ -599,6 +682,7 @@ const SHEETS = {
   sales:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQE074lh3k1j1UlVWtEsvoN4eHdKvYVoZinYxJ8gOl8SLPTYc7tuBGvXcJnmCnzovEgJBKoGfUdqiq7/pub?gid=199833556&single=true&output=csv',
   orchards: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTk117IOc5zNwOtnjDWrPhPQKBi0F97NWu6Ie-tr_yPWqkx-Rp3GQY4-hcBMuBvT8e6ntKV4RTJibZK/pub?gid=1803548833&single=true&output=csv',
   yield:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKwgpoPaYRJnytfbOpWqx-KAatQwI51uFn_tc9RBhl5OUWymRrOcgUg_6L1LTxp8X3_Ztb8mJ2lhin/pub?gid=959975502&single=true&output=csv',
+  expenditure: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRtXKK1nxNi7PSn4b-gtE--ylgQUfEzootijKzrp-jGdn557_lhuNpKhPL-a2qOq5GC6ZWVRjD0Ckj6/pub?gid=729048945&single=true&output=csv',
 };
 function csvUrl(key) {
   return SHEETS[key];
@@ -672,6 +756,9 @@ function nav(id, btn) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
   btn.classList.add('active');
+  // Re-render chart pages on nav (canvas needs visible parent)
+  if (id === 'expenditure' && DB.expenditure.length) renderExpenditure();
+  if (id === 'pl' && DB.expenditure.length) renderPL();
 }
 function setTab(prefix, id, btn) {
   const pg = btn.closest('.page');
@@ -684,7 +771,7 @@ function setTab(prefix, id, btn) {
 // ═══════════════════════════════════════════════════════════
 // STORED DATA
 // ═══════════════════════════════════════════════════════════
-const DB = { rabbits:[], goats:[], sheep:[], health:[], sales:[], orchards:[], yield:[] };
+const DB = { rabbits:[], goats:[], sheep:[], health:[], sales:[], orchards:[], yield:[], expenditure:[] };
 
 // ═══════════════════════════════════════════════════════════
 // SYNC ALL
@@ -738,6 +825,7 @@ function renderAll() {
   renderSales();
   renderOrchards();
   renderYield();
+  renderExpenditure();
   renderDoes();
 }
 
@@ -771,19 +859,33 @@ function renderDashboard() {
   const activeAlerts = health.filter(r => (r['Status']||'').toLowerCase() === 'active').length;
   const deceased     = health.filter(r => (r['Status']||'').toLowerCase() === 'deceased').length;
 
-  // Dashboard metrics
+  // Trend indicators vs previous entry
+  const prevR = rabs[1] || {};
+  const prevG = goats[1] || {};
+  const prevS = sheep[1] || {};
+  const rPrev = num(prevR['Total Rabbits']) || 0;
+  const gPrev = num(prevG['Total Goats'])   || 0;
+  const sPrev = num(prevS['Total Sheep'])   || 0;
+
+  function trendBadge(current, prev) {
+    if (!prev) return '';
+    const diff = current - prev;
+    if (diff > 0) return `<span style="font-size:11px;color:var(--green);font-family:var(--body);font-weight:500;margin-left:4px">▲ ${diff}</span>`;
+    if (diff < 0) return `<span style="font-size:11px;color:var(--red);font-family:var(--body);font-weight:500;margin-left:4px">▼ ${Math.abs(diff)}</span>`;
+    return `<span style="font-size:11px;color:var(--ink3);font-family:var(--body);margin-left:4px">— same</span>`;
+  }
+
+  // Dashboard metrics — removed pregnant does and kits, added trend indicators
   setHTML('dash-metrics', `
-    <div class="metric accent"><div class="metric-label">Rabbits</div><div class="metric-value">${rTotal.toLocaleString()}</div></div>
-    <div class="metric"><div class="metric-label">Pregnant does</div><div class="metric-value">${rPreg}</div></div>
-    <div class="metric"><div class="metric-label">Kits</div><div class="metric-value">${rKitsM + rKitsF}</div></div>
-    <div class="metric"><div class="metric-label">Goats</div><div class="metric-value">${gTotal}</div></div>
-    <div class="metric"><div class="metric-label">Sheep</div><div class="metric-value">${sTotal}</div></div>
+    <div class="metric accent"><div class="metric-label">Rabbits</div><div class="metric-value">${rTotal.toLocaleString()}${trendBadge(rTotal, rPrev)}</div></div>
+    <div class="metric"><div class="metric-label">Goats</div><div class="metric-value">${gTotal}${trendBadge(gTotal, gPrev)}</div></div>
+    <div class="metric"><div class="metric-label">Sheep</div><div class="metric-value">${sTotal}${trendBadge(sTotal, sPrev)}</div></div>
     <div class="metric accent"><div class="metric-label">Total revenue</div><div class="metric-value">${money(totalRevenue)}</div></div>
     <div class="metric warn"><div class="metric-label">Pending</div><div class="metric-value">${money(pendingAmt)}</div></div>
     ${activeAlerts > 0 ? `<div class="metric danger"><div class="metric-label">Active alerts</div><div class="metric-value">${activeAlerts}</div></div>` : `<div class="metric"><div class="metric-label">Health issues</div><div class="metric-value">${deceased} deceased</div></div>`}
   `);
 
-  // Herd table
+    // Herd table
   const latestRDate = latestR['Date'] || '—';
   document.getElementById('dash-date-pill').textContent = fmtDate(latestRDate);
   setHTML('dash-herd', `
@@ -832,6 +934,9 @@ function renderDashboard() {
     : '<div class="empty">No sales records</div>'
   );
 
+  // ── Trend chart ──
+  buildTrendChart();
+
   // Gaps check
   const today = new Date().toISOString().slice(0,10);
   const latestDate = latestR['Date'] || '';
@@ -841,6 +946,80 @@ function renderDashboard() {
     document.getElementById('dash-gaps').innerHTML = `⚠️ <strong>Last rabbit entry: ${fmtDate(latestDate)}</strong> (${daysSince} day${daysSince>1?'s':''} ago). Open the <a href="https://docs.google.com/spreadsheets/d/${SHEETS.rabbits}" target="_blank" style="color:var(--amber)">Rabbit Sheet</a> to add today's data.`;
   }
   document.getElementById('dash-sub').textContent = `Live data from Google Sheets · Last rabbit entry: ${fmtDate(latestDate)} · ${DB.rabbits.length} rabbit records`;
+}
+
+// ─── TREND CHARTS (3 separate) ────────────────────────────
+const _charts = {};
+function makeChart(canvasId, label, color, dataPoints, labels) {
+  if (_charts[canvasId]) _charts[canvasId].destroy();
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  _charts[canvasId] = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label,
+        data: dataPoints,
+        borderColor: color,
+        backgroundColor: color.replace(')', ', 0.10)').replace('rgb', 'rgba'),
+        fill: true,
+        tension: 0.35,
+        pointRadius: dataPoints.length > 30 ? 2 : 4,
+        pointHoverRadius: 6,
+        borderWidth: 2,
+        spanGaps: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#fff',
+          borderColor: 'rgba(0,0,0,0.1)',
+          borderWidth: 1,
+          titleColor: '#1C1C19',
+          bodyColor: '#5A5A54',
+          padding: 10,
+          callbacks: {
+            label: ctx => ` ${label}: ${ctx.parsed.y != null ? ctx.parsed.y.toLocaleString() : '—'}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { maxTicksLimit: 8, font: { size: 10 }, color: '#9A9A92', maxRotation: 30 },
+          grid: { display: false },
+        },
+        y: {
+          ticks: { font: { size: 10 }, color: '#9A9A92', maxTicksLimit: 5 },
+          grid: { color: 'rgba(0,0,0,0.04)' },
+        },
+      }
+    }
+  });
+}
+
+function buildTrendChart() {
+  // Rabbits
+  const rSorted = [...DB.rabbits].sort((a,b) => new Date(a['Date']) - new Date(b['Date']));
+  const rLabels = rSorted.map(r => fmtDate(r['Date']));
+  const rData   = rSorted.map(r => num(r['Total Rabbits']) || null);
+  makeChart('chart-rabbits', 'Rabbits', 'rgb(42,122,90)', rData, rLabels);
+
+  // Goats
+  const gSorted = [...DB.goats].sort((a,b) => new Date(a['Date']) - new Date(b['Date']));
+  const gLabels = gSorted.map(r => fmtDate(r['Date']));
+  const gData   = gSorted.map(r => num(r['Total Goats']) || null);
+  makeChart('chart-goats', 'Goats', 'rgb(181,112,15)', gData, gLabels);
+
+  // Sheep
+  const sSorted = [...DB.sheep].sort((a,b) => new Date(a['Date']) - new Date(b['Date']));
+  const sLabels = sSorted.map(r => fmtDate(r['Date']));
+  const sData   = sSorted.map(r => num(r['Total Sheep']) || null);
+  makeChart('chart-sheep', 'Sheep', 'rgb(44,111,168)', sData, sLabels);
 }
 
 // ─── RABBITS ──────────────────────────────────────────────
@@ -1088,6 +1267,250 @@ function renderYield() {
   </tr>`).join(''));
 }
 
+// ─── EXPENDITURE ──────────────────────────────────────────
+function renderExpenditure() {
+  const rows = DB.expenditure;
+  hide('ex-loading');
+  if (!rows.length) {
+    show('ex-err');
+    document.getElementById('ex-err').textContent = 'No expenditure data — ensure sheet is shared and published.';
+    return;
+  }
+  show('ex-content');
+  document.getElementById('ex-count').textContent = rows.length + ' records';
+
+  const total = rows.reduce((s,r) => s + num(r['Amount USD']), 0);
+
+  // Monthly grouping
+  const now   = new Date();
+  const thisM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const lastM = (() => { const d = new Date(now); d.setMonth(d.getMonth()-1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; })();
+
+  function rowMonth(r) { return (r['Date']||'').slice(0,7); }
+  const thisMonthRows = rows.filter(r => rowMonth(r) === thisM);
+  const lastMonthRows = rows.filter(r => rowMonth(r) === lastM);
+  const thisTotal = thisMonthRows.reduce((s,r) => s + num(r['Amount USD']), 0);
+  const lastTotal = lastMonthRows.reduce((s,r) => s + num(r['Amount USD']), 0);
+  const monthDiff = thisTotal - lastTotal;
+
+  // Pill: vs last month
+  const pill = document.getElementById('ex-month-pill');
+  if (lastTotal > 0) {
+    const pct = ((monthDiff / lastTotal)*100).toFixed(1);
+    pill.textContent = (monthDiff >= 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '% vs last month';
+    pill.className = 'card-pill ' + (monthDiff > 0 ? 'danger' : '');
+  }
+
+  // Metrics
+  setHTML('ex-metrics', `
+    <div class="metric danger"><div class="metric-label">Total spend</div><div class="metric-value">${money(total)}</div></div>
+    <div class="metric warn"><div class="metric-label">This month</div><div class="metric-value">${money(thisTotal)}</div></div>
+    <div class="metric"><div class="metric-label">Last month</div><div class="metric-value">${money(lastTotal)}</div></div>
+    <div class="metric ${monthDiff>0?'danger':'accent'}"><div class="metric-label">Month change</div><div class="metric-value">${monthDiff>=0?'+':''}${money(monthDiff)}</div></div>
+    <div class="metric"><div class="metric-label">Transactions</div><div class="metric-value">${rows.length}</div></div>
+  `);
+
+  // By area
+  const byArea = {};
+  rows.forEach(r => { const a = r['Area']||'Other'; byArea[a] = (byArea[a]||0) + num(r['Amount USD']); });
+  const areaLabels = Object.keys(byArea);
+  const areaData   = areaLabels.map(a => byArea[a]);
+  const areaColors = ['#2A7A5A','#B5700F','#2C6FA8','#7A4A8A','#C0392B'];
+
+  if (_charts['chart-area']) _charts['chart-area'].destroy();
+  const ca = document.getElementById('chart-area');
+  if (ca) _charts['chart-area'] = new Chart(ca, {
+    type: 'doughnut',
+    data: { labels: areaLabels, datasets: [{ data: areaData, backgroundColor: areaColors, borderWidth: 2, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 11 }, color: '#5A5A54', boxWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${money(ctx.parsed)}` } }
+      }
+    }
+  });
+
+  // By category
+  const byCat = {};
+  rows.forEach(r => { const c = r['Category']||'Other'; byCat[c] = (byCat[c]||0) + num(r['Amount USD']); });
+  const catSorted = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
+  const catLabels = catSorted.map(e => e[0]);
+  const catData   = catSorted.map(e => e[1]);
+  const catColors = ['#2A7A5A','#B5700F','#2C6FA8','#7A4A8A','#C0392B','#16A085','#E67E22','#8E44AD','#2980B9','#27AE60','#E74C3C'];
+
+  if (_charts['chart-cat']) _charts['chart-cat'].destroy();
+  const cc = document.getElementById('chart-cat');
+  if (cc) _charts['chart-cat'] = new Chart(cc, {
+    type: 'bar',
+    data: {
+      labels: catLabels,
+      datasets: [{ data: catData, backgroundColor: catColors.slice(0, catLabels.length), borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${money(ctx.parsed.x)}` } } },
+      scales: {
+        x: { ticks: { font:{size:10}, color:'#9A9A92', callback: v => '$'+v }, grid: { color:'rgba(0,0,0,0.04)' } },
+        y: { ticks: { font:{size:10}, color:'#5A5A54' }, grid: { display:false } }
+      }
+    }
+  });
+
+  // Monthly spend bar chart — last 6 months
+  const monthlyTotals = {};
+  rows.forEach(r => {
+    const m = rowMonth(r);
+    if (m) monthlyTotals[m] = (monthlyTotals[m]||0) + num(r['Amount USD']);
+  });
+  const months6 = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now); d.setMonth(d.getMonth()-i);
+    months6.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  const monthLabels = months6.map(m => { const [y,mo] = m.split('-'); return ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(mo)] + ' ' + y.slice(2); });
+  const monthData   = months6.map(m => monthlyTotals[m]||0);
+  const barColors   = months6.map(m => m === thisM ? '#C0392B' : m === lastM ? '#E67E22' : '#E8E5DC');
+
+  if (_charts['chart-monthly']) _charts['chart-monthly'].destroy();
+  const cm = document.getElementById('chart-monthly');
+  if (cm) _charts['chart-monthly'] = new Chart(cm, {
+    type: 'bar',
+    data: {
+      labels: monthLabels,
+      datasets: [{
+        label: 'Spend',
+        data: monthData,
+        backgroundColor: barColors,
+        borderRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${money(ctx.parsed.y)}` } }
+      },
+      scales: {
+        x: { ticks: { font:{size:11}, color:'#9A9A92' }, grid: { display:false } },
+        y: { ticks: { font:{size:11}, color:'#9A9A92', callback: v => '$'+v }, grid: { color:'rgba(0,0,0,0.04)' } }
+      }
+    }
+  });
+
+  // Transaction table
+  const sorted = [...rows].sort((a,b) => new Date(b['Date']) - new Date(a['Date']));
+  setHTML('ex-table', sorted.map(r => {
+    const amt = num(r['Amount USD']);
+    const area = r['Area']||'—';
+    const areaColor = area==='Livestock'?'bg':area==='Orchards'?'ba':area==='Infrastructure'?'bb':area.includes('Admin')?'bk':'bk';
+    return `<tr>
+      <td>${fmtDate(r['Date'])}</td>
+      <td style="font-weight:500">${r['Activity']||'—'}</td>
+      <td><span class="badge ${areaColor}">${area}</span></td>
+      <td style="font-size:12px;color:var(--ink3)">${r['Category']||'—'}</td>
+      <td class="num c-red" style="font-weight:500">${money(amt)}</td>
+      <td style="font-size:12px">${r['Person Responsible']||'—'}</td>
+      <td style="font-size:12px;color:var(--ink3)">${r['Supplier / Vendor']||'—'}</td>
+      <td style="font-size:12px;color:var(--ink3)">${r['Payment Method']||'—'}</td>
+      <td style="font-size:11px;color:var(--ink3)">${r['Receipt / Ref No']||'—'}</td>
+      <td style="font-size:11px;color:var(--ink3);max-width:160px">${r['Notes']||''}</td>
+    </tr>`;
+  }).join(''));
+
+  // Also render P&L now that we have expenditure data
+  renderPL();
+}
+
+// ─── P&L ──────────────────────────────────────────────────
+function renderPL() {
+  hide('pl-loading');
+  show('pl-content');
+
+  const sales = DB.sales;
+  const costs = DB.expenditure;
+
+  const totalRev  = sales.reduce((s,r) => s + num(r['Total USD']), 0);
+  const totalCost = costs.reduce((s,r) => s + num(r['Amount USD']), 0);
+  const netProfit = totalRev - totalCost;
+  const margin    = totalRev > 0 ? ((netProfit/totalRev)*100).toFixed(1) : 0;
+
+  setHTML('pl-metrics', `
+    <div class="metric accent"><div class="metric-label">Total revenue</div><div class="metric-value">${money(totalRev)}</div></div>
+    <div class="metric danger"><div class="metric-label">Total costs</div><div class="metric-value">${money(totalCost)}</div></div>
+    <div class="metric ${netProfit>=0?'accent':'danger'}"><div class="metric-label">Net profit</div><div class="metric-value">${money(netProfit)}</div></div>
+    <div class="metric ${netProfit>=0?'accent':'danger'}"><div class="metric-label">Margin</div><div class="metric-value">${margin}<span class="metric-unit">%</span></div></div>
+  `);
+
+  // Monthly chart — last 6 months
+  const now = new Date();
+  const months6 = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now); d.setMonth(d.getMonth()-i);
+    months6.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  function rowMonth(r, dateKey) { return (r[dateKey]||'').slice(0,7); }
+  const monthLabels = months6.map(m => { const [y,mo] = m.split('-'); return ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(mo)] + ' ' + y.slice(2); });
+  const revByMonth  = months6.map(m => sales.filter(r => rowMonth(r,'Date')===m).reduce((s,r)=>s+num(r['Total USD']),0));
+  const costByMonth = months6.map(m => costs.filter(r => rowMonth(r,'Date')===m).reduce((s,r)=>s+num(r['Amount USD']),0));
+
+  if (_charts['chart-pl']) _charts['chart-pl'].destroy();
+  const cp = document.getElementById('chart-pl');
+  if (cp) _charts['chart-pl'] = new Chart(cp, {
+    type: 'bar',
+    data: {
+      labels: monthLabels,
+      datasets: [
+        { label: 'Revenue', data: revByMonth,  backgroundColor: 'rgba(42,122,90,0.75)',  borderRadius: 4 },
+        { label: 'Costs',   data: costByMonth, backgroundColor: 'rgba(192,57,43,0.75)',  borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { font:{size:11}, color:'#5A5A54', boxWidth:12 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${money(ctx.parsed.y)}` } }
+      },
+      scales: {
+        x: { ticks: { font:{size:11}, color:'#9A9A92' }, grid: { display:false } },
+        y: { ticks: { font:{size:11}, color:'#9A9A92', callback: v=>'$'+v }, grid: { color:'rgba(0,0,0,0.04)' } }
+      }
+    }
+  });
+
+  // P&L by area
+  const areas = [...new Set(costs.map(r => r['Area']||'Other'))];
+  // Revenue mapped loosely: Livestock area gets livestock sales, rest unallocated
+  const areaRevMap = { 'Livestock': sales.filter(r => !['Bananas','Pawpaw','Coffee','Apples','Grapes','Macadamia'].some(c => (r['Item']||'').includes(c))).reduce((s,r)=>s+num(r['Total USD']),0) };
+  setHTML('pl-table', areas.map(area => {
+    const areaCost = costs.filter(r => (r['Area']||'Other')===area).reduce((s,r)=>s+num(r['Amount USD']),0);
+    const areaRev  = areaRevMap[area] || 0;
+    const net = areaRev - areaCost;
+    return `<tr>
+      <td style="font-weight:500">${area}</td>
+      <td class="num c-red">${money(areaCost)}</td>
+      <td class="num c-green">${money(areaRev)}</td>
+      <td class="num ${net>=0?'c-green':'c-red'}" style="font-weight:500">${money(net)}</td>
+    </tr>`;
+  }).join(''));
+
+  // Monthly table
+  setHTML('pl-monthly-table', months6.map((m, i) => {
+    const rev  = revByMonth[i];
+    const cost = costByMonth[i];
+    const net  = rev - cost;
+    const marg = rev > 0 ? ((net/rev)*100).toFixed(1) + '%' : '—';
+    return `<tr>
+      <td style="font-weight:500">${monthLabels[i]}</td>
+      <td class="num c-green">${money(rev)}</td>
+      <td class="num c-red">${money(cost)}</td>
+      <td class="num ${net>=0?'c-green':'c-red'}" style="font-weight:500">${money(net)}</td>
+      <td class="${net>=0?'c-green':'c-red'}">${marg}</td>
+    </tr>`;
+  }).join(''));
+}
+
 // ─── DOES (static) ────────────────────────────────────────
 function renderDoes() {
   const does = [
@@ -1134,5 +1557,6 @@ window.addEventListener('load', () => {
   syncAll();
 });
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </body>
 </html>

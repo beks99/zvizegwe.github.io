@@ -805,7 +805,13 @@ function fmtDate(d) {
   return d;
 }
 function num(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
-function money(v) { return '$' + num(v).toFixed(2); }
+function fmtNum(v, decimals=0) {
+  // Format number with space as thousands separator
+  const parts = parseFloat(v).toFixed(decimals).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return decimals > 0 ? parts.join('.') : parts[0];
+}
+function money(v) { return '$ ' + fmtNum(num(v), 2); }
 function setHTML(id, h) { const el = document.getElementById(id); if (el) el.innerHTML = h; }
 function show(id) { const el = document.getElementById(id); if (el) el.style.display = ''; }
 function hide(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
@@ -945,20 +951,22 @@ function renderDashboard() {
   }
 
   // Dashboard metrics — removed pregnant does and kits, added trend indicators
+  const totalExpenditure = DB.expenditure.reduce((s,r) => s + num(r['Amount USD']), 0);
+
   setHTML('dash-metrics', `
-    <div class="metric accent"><div class="metric-label">Rabbits</div><div class="metric-value">${rTotal.toLocaleString()}${trendBadge(rTotal, rPrev)}</div></div>
+    <div class="metric accent"><div class="metric-label">Rabbits</div><div class="metric-value">${fmtNum(rTotal)}${trendBadge(rTotal, rPrev)}</div></div>
     <div class="metric"><div class="metric-label">Goats</div><div class="metric-value">${gTotal}${trendBadge(gTotal, gPrev)}</div></div>
     <div class="metric"><div class="metric-label">Sheep</div><div class="metric-value">${sTotal}${trendBadge(sTotal, sPrev)}</div></div>
     <div class="metric accent"><div class="metric-label">Total revenue</div><div class="metric-value">${money(totalRevenue)}</div></div>
     <div class="metric warn"><div class="metric-label">Pending</div><div class="metric-value">${money(pendingAmt)}</div></div>
-    ${activeAlerts > 0 ? `<div class="metric danger"><div class="metric-label">Active alerts</div><div class="metric-value">${activeAlerts}</div></div>` : `<div class="metric"><div class="metric-label">Health issues</div><div class="metric-value">${deceased} deceased</div></div>`}
+    <div class="metric danger"><div class="metric-label">Total expenditure</div><div class="metric-value">${money(totalExpenditure)}</div></div>
   `);
 
     // Herd table
   const latestRDate = latestR['Date'] || '—';
   document.getElementById('dash-date-pill').textContent = fmtDate(latestRDate);
   setHTML('dash-herd', `
-    <tr><td><strong>Rabbits</strong></td><td class="num">${rTotal.toLocaleString()}</td><td>${rMale}</td><td>${rFem}</td><td>${(rKitsM+rKitsF)} kits</td><td>${rPreg}</td></tr>
+    <tr><td><strong>Rabbits</strong></td><td class="num">${fmtNum(rTotal)}</td><td>${rMale}</td><td>${rFem}</td><td>${(rKitsM+rKitsF)} kits</td><td>${rPreg}</td></tr>
     <tr><td><strong>Goats</strong></td><td class="num">${gTotal}</td><td>${num(latestG['Adult Bucks'])||6}</td><td>${num(latestG['Adult Does'])||79}</td><td>${(num(latestG['Kids'])||39)} kids</td><td>${num(latestG['Pregnant Does'])||21}</td></tr>
     <tr><td><strong>Sheep</strong></td><td class="num">${sTotal}</td><td>${num(latestS['Adult Rams'])||2}</td><td>${num(latestS['Adult Ewes'])||34}</td><td>${(num(latestS['Lambs'])||2)} lambs</td><td>${num(latestS['Pregnant Ewes'])||11}</td></tr>
   `);
@@ -969,7 +977,7 @@ function renderDashboard() {
   setHTML('dash-detail', `
     <tr><td style="color:var(--ink3)">Date</td><td class="num">${fmtDate(latestRDate)}</td></tr>
     <tr><td style="color:var(--ink3)">Recorded by</td><td>${by}</td></tr>
-    <tr><td style="color:var(--ink3)">Total rabbits</td><td class="num c-green">${rTotal.toLocaleString()}</td></tr>
+    <tr><td style="color:var(--ink3)">Total rabbits</td><td class="num c-green">${fmtNum(rTotal)}</td></tr>
     <tr><td style="color:var(--ink3)">Pregnant does</td><td class="num">${rPreg}</td></tr>
     <tr><td style="color:var(--ink3)">Male adults</td><td class="num">${rMale}</td></tr>
     <tr><td style="color:var(--ink3)">Female adults</td><td class="num">${rFem}</td></tr>
@@ -1053,7 +1061,7 @@ function makeChart(canvasId, label, color, dataPoints, labels) {
           bodyColor: '#5A5A54',
           padding: 10,
           callbacks: {
-            label: ctx => ` ${label}: ${ctx.parsed.y != null ? ctx.parsed.y.toLocaleString() : '—'}`
+            label: ctx => ` ${label}: ${ctx.parsed.y != null ? fmtNum(ctx.parsed.y) : '—'}`
           }
         }
       },
@@ -1103,7 +1111,7 @@ function renderRabbits() {
   const totalBirths = rows.reduce((s,r) => s + num(r['Births Male']) + num(r['Births Female']), 0);
   const totalDeaths = rows.reduce((s,r) => s + num(r['Deaths Male']) + num(r['Deaths Female']), 0);
   setHTML('r-metrics', `
-    <div class="metric accent"><div class="metric-label">Latest total</div><div class="metric-value">${num(latest['Total Rabbits']).toLocaleString()}</div></div>
+    <div class="metric accent"><div class="metric-label">Latest total</div><div class="metric-value">${fmtNum(num(latest['Total Rabbits']))}</div></div>
     <div class="metric"><div class="metric-label">Pregnant does</div><div class="metric-value">${latest['Pregnant Does']||'—'}</div></div>
     <div class="metric"><div class="metric-label">Kits</div><div class="metric-value">${num(latest['Kits Male'])+num(latest['Kits Female'])}</div></div>
     <div class="metric warn"><div class="metric-label">Total births</div><div class="metric-value">${totalBirths}</div></div>
@@ -1319,7 +1327,7 @@ function renderYield() {
   const totalKg  = rows.reduce((s,r) => s + num(r['Quantity KG']), 0);
   const totalRev = rows.reduce((s,r) => s + num(r['Revenue USD']), 0);
   setHTML('y-metrics', `
-    <div class="metric accent"><div class="metric-label">Total harvested</div><div class="metric-value">${totalKg.toLocaleString()}<span class="metric-unit"> kg</span></div></div>
+    <div class="metric accent"><div class="metric-label">Total harvested</div><div class="metric-value">${fmtNum(totalKg)}<span class="metric-unit"> kg</span></div></div>
     <div class="metric accent"><div class="metric-label">Total revenue</div><div class="metric-value">${money(totalRev)}</div></div>
     <div class="metric"><div class="metric-label">Harvests recorded</div><div class="metric-value">${rows.length}</div></div>
   `);
@@ -1327,7 +1335,7 @@ function renderYield() {
     <td>${fmtDate(r['Date'])}</td>
     <td>${r['Crop']||'—'}</td>
     <td style="color:var(--ink3)">${r['Block']||'—'}</td>
-    <td class="num">${num(r['Quantity KG']).toLocaleString()} kg</td>
+    <td class="num">${fmtNum(num(r['Quantity KG']))} kg</td>
     <td>${r['Quality Grade']?`<span class="badge ${r['Quality Grade']==='A'?'bg':r['Quality Grade']==='B'?'ba':'br'}">Grade ${r['Quality Grade']}</span>`:'—'}</td>
     <td class="num c-green">${money(r['Revenue USD'])}</td>
     <td>${statusBadge(r['Payment Status'])}</td>

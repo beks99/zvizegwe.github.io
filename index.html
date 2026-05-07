@@ -267,6 +267,7 @@ tbody tr:hover td { background: var(--cream); }
     <div class="logo-leaf">🌿</div>
     <div class="logo-name">Zvizegwe Farm</div>
     <div class="logo-sub">Live Dashboard</div>
+      <button onclick="logout()" style="margin-top:10px;width:100%;padding:5px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:var(--r-sm);color:rgba(255,255,255,0.4);font-size:11px;cursor:pointer;font-family:var(--body);">Sign out</button>
   </div>
 
   <div class="sync-area">
@@ -553,37 +554,105 @@ tbody tr:hover td { background: var(--cream); }
 <!-- ─── EXPENDITURE ──────────────────────────────────────── -->
 <div id="page-expenditure" class="page">
   <div class="page-eyebrow">Finance</div>
-  <div class="page-title">Expenditure Register</div>
+  <div class="page-title">Expenditure</div>
   <div class="page-sub">All farm costs — live from Google Sheets · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1BoDI13SCrMTfrUqWloA6pXpFQXYSf_f4nCq9jcOpycs" target="_blank">✏️ Edit sheet</a></div>
   <div id="ex-loading" class="loading-wrap"><div class="spinner"></div>Loading expenditure data…</div>
   <div id="ex-err" class="err-bar" style="display:none"></div>
   <div id="ex-content" style="display:none">
+
+    <!-- Total spend metrics -->
     <div class="metrics" id="ex-metrics"></div>
-    <div class="g2" style="margin-bottom:18px">
-      <div class="card">
-        <div class="card-header"><span class="card-title">Spend by area</span></div>
-        <div style="position:relative;height:200px"><canvas id="chart-area"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">Spend by category</span></div>
-        <div style="position:relative;height:200px"><canvas id="chart-cat"></canvas></div>
-      </div>
+
+    <!-- Stream breakdown tree -->
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-header"><span class="card-title">Total expenditure by stream (all time)</span></div>
+      <div id="ex-tree"></div>
     </div>
-    <div class="card">
+
+    <!-- Revenue vs Expenditure by stream -->
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-header"><span class="card-title">Revenue vs expenditure by stream</span></div>
+      <div style="position:relative;height:280px"><canvas id="chart-rev-vs-exp"></canvas></div>
+    </div>
+
+    <!-- Monthly spend chart -->
+    <div class="card" style="margin-bottom:18px">
       <div class="card-header">
-        <span class="card-title">Monthly spend — this month vs last month</span>
+        <span class="card-title">Monthly spend — last 6 months</span>
         <span class="card-pill" id="ex-month-pill">—</span>
       </div>
       <div style="position:relative;height:220px"><canvas id="chart-monthly"></canvas></div>
     </div>
+
+    <!-- Filterable transaction table -->
     <div class="card">
-      <div class="card-header"><span class="card-title">All transactions</span><span class="card-pill" id="ex-count">0 records</span></div>
+      <div class="card-header">
+        <span class="card-title">Transaction detail</span>
+        <span class="card-pill" id="ex-count">0 records</span>
+      </div>
+      <!-- Filters -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+        <div class="form-group" style="flex:1;min-width:120px">
+          <div class="form-label">Area</div>
+          <select id="f-area" onchange="filterExTable()">
+            <option value="">All areas</option>
+            <option>Livestock</option><option>Orchards</option>
+            <option>Infrastructure</option><option>Admin / Logistics</option><option>General / Shared</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:140px">
+          <div class="form-label">Sub-stream</div>
+          <select id="f-sub" onchange="filterExTable()">
+            <option value="">All sub-streams</option>
+            <option>Rabbits</option><option>Goats</option><option>Sheep</option>
+            <option>Bananas</option><option>Apples</option><option>Coffee</option>
+            <option>Papaya</option><option>Passion Fruit</option><option>Grapes</option>
+            <option>Macadamia</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:140px">
+          <div class="form-label">Category</div>
+          <select id="f-cat" onchange="filterExTable()">
+            <option value="">All categories</option>
+            <option>Feed</option><option>Veterinary &amp; Medicine</option>
+            <option>Seeds &amp; Inputs</option><option>Labour</option>
+            <option>Livestock Purchase</option><option>New Plantings &amp; Seedlings</option>
+            <option>Maintenance &amp; Repairs</option><option>Utilities</option>
+            <option>Fuel &amp; Transport</option><option>Equipment &amp; Tools</option>
+            <option>Salaries</option><option>Admin &amp; Office</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:120px">
+          <div class="form-label">Person</div>
+          <select id="f-person" onchange="filterExTable()">
+            <option value="">All people</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:110px">
+          <div class="form-label">From date</div>
+          <input type="date" id="f-from" onchange="filterExTable()">
+        </div>
+        <div class="form-group" style="flex:1;min-width:110px">
+          <div class="form-label">To date</div>
+          <input type="date" id="f-to" onchange="filterExTable()">
+        </div>
+        <div class="form-group" style="flex:1;min-width:120px">
+          <div class="form-label">Search</div>
+          <input type="text" id="f-search" placeholder="Activity / supplier…" oninput="filterExTable()">
+        </div>
+        <div class="form-group" style="justify-content:flex-end;padding-top:18px">
+          <button class="btn btn-sm" onclick="clearExFilters()">Clear filters</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:10px" id="ex-filter-summary"></div>
       <div class="table-scroll">
         <table><thead><tr>
-          <th>Date</th><th>Activity</th><th>Area</th><th>Category</th><th>Amount</th><th>Person</th><th>Supplier</th><th>Method</th><th>Ref</th><th>Notes</th>
+          <th>Date</th><th>Activity</th><th>Area</th><th>Sub-stream</th><th>Category</th>
+          <th>Amount</th><th>Person</th><th>Supplier</th><th>Method</th><th>Ref</th><th>Notes</th>
         </tr></thead>
         <tbody id="ex-table"></tbody></table>
       </div>
+      <div style="margin-top:12px;font-size:13px;font-weight:500;color:var(--red)" id="ex-filter-total"></div>
     </div>
   </div>
 </div>
@@ -1268,173 +1337,372 @@ function renderYield() {
 }
 
 // ─── EXPENDITURE ──────────────────────────────────────────
+// Stream mapping: maps Activity/Notes keywords → sub-stream
+const STREAM_MAP = {
+  // Orchards
+  'Bananas':       {area:'Orchards', sub:'Bananas'},
+  'Banana':        {area:'Orchards', sub:'Bananas'},
+  'Apples':        {area:'Orchards', sub:'Apples'},
+  'Apple':         {area:'Orchards', sub:'Apples'},
+  'Coffee':        {area:'Orchards', sub:'Coffee'},
+  'Papaya':        {area:'Orchards', sub:'Papaya'},
+  'Pawpaw':        {area:'Orchards', sub:'Papaya'},
+  'Passion':       {area:'Orchards', sub:'Passion Fruit'},
+  'Grapes':        {area:'Orchards', sub:'Grapes'},
+  'Grape':         {area:'Orchards', sub:'Grapes'},
+  'Macadamia':     {area:'Orchards', sub:'Macadamia'},
+  'Lucerne':       {area:'Orchards', sub:'Lucerne'},
+  // Livestock
+  'Rabbit':        {area:'Livestock', sub:'Rabbits'},
+  'rabbit':        {area:'Livestock', sub:'Rabbits'},
+  'Goat':          {area:'Livestock', sub:'Goats'},
+  'goat':          {area:'Livestock', sub:'Goats'},
+  'Sheep':         {area:'Livestock', sub:'Sheep'},
+  'sheep':         {area:'Livestock', sub:'Sheep'},
+};
+
+function inferSub(row) {
+  // First check if sheet has a Sub-stream column
+  const explicit = row['Sub-stream'] || row['Sub stream'] || '';
+  if (explicit) return explicit;
+  // Otherwise infer from Activity + Notes
+  const text = (row['Activity']||'') + ' ' + (row['Notes']||'') + ' ' + (row['Category']||'');
+  for (const [key, val] of Object.entries(STREAM_MAP)) {
+    if (text.includes(key)) return val.sub;
+  }
+  return '';
+}
+
+function inferArea(row) {
+  const explicit = row['Area'] || '';
+  if (explicit) return explicit;
+  const text = (row['Activity']||'') + ' ' + (row['Notes']||'');
+  for (const [key, val] of Object.entries(STREAM_MAP)) {
+    if (text.includes(key)) return val.area;
+  }
+  return 'General / Shared';
+}
+
+// Revenue mapping per stream
+function streamRevenue(sub) {
+  const sales = DB.sales;
+  const keywords = {
+    'Rabbits':      ['rabbit','Rabbit','breeder','Breeder','meat','Meat'],
+    'Granaburst':   ['Granaburst','granaburst','urine','Urine'],
+    'Bananas':      ['Banana','banana'],
+    'Apples':       ['Apple','apple'],
+    'Coffee':       ['Coffee','coffee'],
+    'Papaya':       ['Papaya','papaya','Pawpaw','pawpaw'],
+    'Passion Fruit':['Passion','passion'],
+    'Grapes':       ['Grape','grape'],
+    'Macadamia':    ['Macadamia','macadamia'],
+  };
+  const kws = keywords[sub] || [sub];
+  return sales.filter(r => kws.some(k => (r['Item']||'').includes(k)))
+              .reduce((s,r) => s + num(r['Total USD']), 0);
+}
+
+// Orchard and livestock sub-streams
+const ORCHARD_SUBS  = ['Bananas','Apples','Coffee','Papaya','Passion Fruit','Grapes','Macadamia','Lucerne'];
+const LIVESTOCK_SUBS = ['Rabbits','Goats','Sheep'];
+const TOP_STREAMS   = ['Orchards','Livestock','Infrastructure','Salaries','Admin / Logistics','General / Shared'];
+
+
 function renderExpenditure() {
   const rows = DB.expenditure;
   hide('ex-loading');
   if (!rows.length) {
     show('ex-err');
-    document.getElementById('ex-err').textContent = 'No expenditure data — ensure sheet is shared and published.';
+    document.getElementById('ex-err').textContent = 'No expenditure data — ensure sheet is published and shared publicly.';
     return;
   }
   show('ex-content');
-  document.getElementById('ex-count').textContent = rows.length + ' records';
 
-  const total = rows.reduce((s,r) => s + num(r['Amount USD']), 0);
+  // ── Enrich each row with _area and _sub ──────────────────
+  const KEYWORD_MAP = [
+    // Orchards
+    {k:'Banana',       area:'Orchards',    sub:'Bananas'},
+    {k:'Apple',        area:'Orchards',    sub:'Apples'},
+    {k:'Coffee',       area:'Orchards',    sub:'Coffee'},
+    {k:'Papaya',       area:'Orchards',    sub:'Papaya'},
+    {k:'Pawpaw',       area:'Orchards',    sub:'Papaya'},
+    {k:'Passion',      area:'Orchards',    sub:'Passion Fruit'},
+    {k:'Grape',        area:'Orchards',    sub:'Grapes'},
+    {k:'Macadamia',    area:'Orchards',    sub:'Macadamia'},
+    {k:'Lucerne',      area:'Orchards',    sub:'Lucerne'},
+    // Livestock
+    {k:'Rabbit',       area:'Livestock',   sub:'Rabbits'},
+    {k:'rabbit',       area:'Livestock',   sub:'Rabbits'},
+    {k:'Goat',         area:'Livestock',   sub:'Goats'},
+    {k:'goat',         area:'Livestock',   sub:'Goats'},
+    {k:'Sheep',        area:'Livestock',   sub:'Sheep'},
+    {k:'sheep',        area:'Livestock',   sub:'Sheep'},
+  ];
 
-  // Monthly grouping
-  const now   = new Date();
-  const thisM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const lastM = (() => { const d = new Date(now); d.setMonth(d.getMonth()-1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; })();
+  rows.forEach(r => {
+    // Area: use sheet value or infer
+    let area = (r['Area'] || '').trim();
+    let sub  = (r['Sub-stream'] || r['Sub stream'] || '').trim();
+    const txt = (r['Activity']||'') + ' ' + (r['Notes']||'') + ' ' + (r['Category']||'');
+    if (!area || area === 'General / Shared') {
+      for (const m of KEYWORD_MAP) {
+        if (txt.includes(m.k)) { area = m.area; if (!sub) sub = m.sub; break; }
+      }
+    }
+    if (!sub && area) {
+      for (const m of KEYWORD_MAP) {
+        if (m.area === area && txt.includes(m.k)) { sub = m.sub; break; }
+      }
+    }
+    r._area = area || 'General / Shared';
+    r._sub  = sub || '';
+  });
 
-  function rowMonth(r) { return (r['Date']||'').slice(0,7); }
-  const thisMonthRows = rows.filter(r => rowMonth(r) === thisM);
-  const lastMonthRows = rows.filter(r => rowMonth(r) === lastM);
-  const thisTotal = thisMonthRows.reduce((s,r) => s + num(r['Amount USD']), 0);
-  const lastTotal = lastMonthRows.reduce((s,r) => s + num(r['Amount USD']), 0);
-  const monthDiff = thisTotal - lastTotal;
+  // ── Totals ───────────────────────────────────────────────
+  const total    = rows.reduce((s,r) => s + num(r['Amount USD']), 0);
+  const now      = new Date();
+  const thisM    = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const lastMd   = new Date(now); lastMd.setMonth(lastMd.getMonth()-1);
+  const lastM    = `${lastMd.getFullYear()}-${String(lastMd.getMonth()+1).padStart(2,'0')}`;
+  const rowMonth = r => (r['Date']||'').slice(0,7);
+  const thisT    = rows.filter(r=>rowMonth(r)===thisM).reduce((s,r)=>s+num(r['Amount USD']),0);
+  const lastT    = rows.filter(r=>rowMonth(r)===lastM).reduce((s,r)=>s+num(r['Amount USD']),0);
+  const mdiff    = thisT - lastT;
 
-  // Pill: vs last month
   const pill = document.getElementById('ex-month-pill');
-  if (lastTotal > 0) {
-    const pct = ((monthDiff / lastTotal)*100).toFixed(1);
-    pill.textContent = (monthDiff >= 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '% vs last month';
-    pill.className = 'card-pill ' + (monthDiff > 0 ? 'danger' : '');
+  if (pill && lastT > 0) {
+    pill.textContent = (mdiff>=0?'▲ ':'▼ ') + Math.abs(((mdiff/lastT)*100).toFixed(1)) + '% vs last month';
+    pill.className = 'card-pill ' + (mdiff > 0 ? 'danger' : '');
   }
 
-  // Metrics
+  // ── Metrics strip ─────────────────────────────────────────
   setHTML('ex-metrics', `
-    <div class="metric danger"><div class="metric-label">Total spend</div><div class="metric-value">${money(total)}</div></div>
-    <div class="metric warn"><div class="metric-label">This month</div><div class="metric-value">${money(thisTotal)}</div></div>
-    <div class="metric"><div class="metric-label">Last month</div><div class="metric-value">${money(lastTotal)}</div></div>
-    <div class="metric ${monthDiff>0?'danger':'accent'}"><div class="metric-label">Month change</div><div class="metric-value">${monthDiff>=0?'+':''}${money(monthDiff)}</div></div>
+    <div class="metric danger"><div class="metric-label">All-time spend</div><div class="metric-value">${money(total)}</div></div>
+    <div class="metric warn"><div class="metric-label">This month</div><div class="metric-value">${money(thisT)}</div></div>
+    <div class="metric"><div class="metric-label">Last month</div><div class="metric-value">${money(lastT)}</div></div>
+    <div class="metric ${mdiff>0?'danger':'accent'}"><div class="metric-label">Month Δ</div><div class="metric-value">${mdiff>=0?'+':''}${money(mdiff)}</div></div>
     <div class="metric"><div class="metric-label">Transactions</div><div class="metric-value">${rows.length}</div></div>
   `);
 
-  // By area
-  const byArea = {};
-  rows.forEach(r => { const a = r['Area']||'Other'; byArea[a] = (byArea[a]||0) + num(r['Amount USD']); });
-  const areaLabels = Object.keys(byArea);
-  const areaData   = areaLabels.map(a => byArea[a]);
-  const areaColors = ['#2A7A5A','#B5700F','#2C6FA8','#7A4A8A','#C0392B'];
+  // ── Helper: sum by area+sub ───────────────────────────────
+  function subSum(area, sub) {
+    return rows.filter(r => r._area===area && (!sub || r._sub===sub))
+               .reduce((s,r) => s+num(r['Amount USD']), 0);
+  }
+  function areaSum(area) { return rows.filter(r=>r._area===area).reduce((s,r)=>s+num(r['Amount USD']),0); }
 
-  if (_charts['chart-area']) _charts['chart-area'].destroy();
-  const ca = document.getElementById('chart-area');
-  if (ca) _charts['chart-area'] = new Chart(ca, {
-    type: 'doughnut',
-    data: { labels: areaLabels, datasets: [{ data: areaData, backgroundColor: areaColors, borderWidth: 2, borderColor: '#fff' }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'right', labels: { font: { size: 11 }, color: '#5A5A54', boxWidth: 12 } },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${money(ctx.parsed)}` } }
-      }
-    }
-  });
+  // ── Revenue per sub-stream from sales data ────────────────
+  function streamRev(sub) {
+    const kw = {
+      'Rabbits':      ['rabbit','Rabbit','breeder','Breeder','meat','Meat','Granaburst','granaburst','urine'],
+      'Goats':        ['Goat','goat'],
+      'Sheep':        ['Sheep','sheep'],
+      'Bananas':      ['Banana','banana'],
+      'Apples':       ['Apple','apple'],
+      'Coffee':       ['Coffee','coffee'],
+      'Papaya':       ['Papaya','papaya','Pawpaw','pawpaw'],
+      'Passion Fruit':['Passion','passion'],
+      'Grapes':       ['Grape','grape'],
+      'Macadamia':    ['Macadamia','macadamia'],
+    };
+    const keys = kw[sub] || [sub];
+    return DB.sales.filter(r => keys.some(k => (r['Item']||'').includes(k)))
+                   .reduce((s,r) => s+num(r['Total USD']), 0);
+  }
 
-  // By category
-  const byCat = {};
-  rows.forEach(r => { const c = r['Category']||'Other'; byCat[c] = (byCat[c]||0) + num(r['Amount USD']); });
-  const catSorted = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
-  const catLabels = catSorted.map(e => e[0]);
-  const catData   = catSorted.map(e => e[1]);
-  const catColors = ['#2A7A5A','#B5700F','#2C6FA8','#7A4A8A','#C0392B','#16A085','#E67E22','#8E44AD','#2980B9','#27AE60','#E74C3C'];
+  const totalRev = DB.sales.reduce((s,r)=>s+num(r['Total USD']),0);
+  const pct = v => total>0 ? ((v/total)*100).toFixed(1)+'%' : '0%';
 
-  if (_charts['chart-cat']) _charts['chart-cat'].destroy();
-  const cc = document.getElementById('chart-cat');
-  if (cc) _charts['chart-cat'] = new Chart(cc, {
+  // ── Stream breakdown table ────────────────────────────────
+  const ORCHARD_SUBS  = ['Bananas','Apples','Coffee','Papaya','Passion Fruit','Grapes','Macadamia','Lucerne'];
+  const STOCK_SUBS    = ['Rabbits','Goats','Sheep'];
+  const orchardTot    = areaSum('Orchards');
+  const stockTot      = areaSum('Livestock');
+  const infraTot      = areaSum('Infrastructure');
+  const salaryTot     = rows.filter(r=>(r['Category']||'').toLowerCase().includes('salar')||(r['Category']||'').toLowerCase().includes('wage')||(r._area||'').toLowerCase().includes('salar')).reduce((s,r)=>s+num(r['Amount USD']),0);
+  const adminTot      = areaSum('Admin / Logistics');
+  const generalTot    = areaSum('General / Shared');
+
+  function groupRow(icon, label, exp, rev) {
+    const net = rev - exp;
+    return `<tr style="background:var(--cream2);font-weight:600">
+      <td style="padding:10px 12px">${icon} ${label}</td>
+      <td class="num" style="color:var(--red)">${money(exp)}</td>
+      <td class="num c-green">${rev>0?money(rev):'—'}</td>
+      <td class="num ${net>=0?'c-green':'c-red'}">${rev>0?money(net):'—'}</td>
+      <td style="color:var(--ink3);font-weight:400">${pct(exp)}</td>
+    </tr>`;
+  }
+  function subRow(label, exp, rev) {
+    if (!exp && !rev) return '';
+    const net = rev - exp;
+    return `<tr>
+      <td style="padding:8px 12px 8px 28px;color:var(--ink2)">↳ ${label}</td>
+      <td class="num" style="color:var(--red)">${money(exp)}</td>
+      <td class="num c-green">${rev>0?money(rev):'—'}</td>
+      <td class="num ${net>=0?'c-green':'c-red'}">${rev>0?money(net):'—'}</td>
+      <td style="color:var(--ink3);font-size:12px">${pct(exp)}</td>
+    </tr>`;
+  }
+
+  setHTML('ex-tree', `
+    <div class="table-scroll"><table style="width:100%">
+      <thead><tr>
+        <th>Stream</th><th>Expenditure</th><th>Revenue</th><th>Net P&amp;L</th><th>% of costs</th>
+      </tr></thead>
+      <tbody>
+        ${groupRow('🌳','Orchards', orchardTot, ORCHARD_SUBS.reduce((s,sub)=>s+streamRev(sub),0))}
+        ${ORCHARD_SUBS.map(s => subRow(s, subSum('Orchards',s), streamRev(s))).join('')}
+        ${groupRow('🐾','Livestock', stockTot, STOCK_SUBS.reduce((s,sub)=>s+streamRev(sub),0))}
+        ${STOCK_SUBS.map(s => subRow(s, subSum('Livestock',s), streamRev(s))).join('')}
+        ${infraTot>0 ? groupRow('🏗','Infrastructure', infraTot, 0) : ''}
+        ${salaryTot>0 ? groupRow('👥','Salaries', salaryTot, 0) : ''}
+        ${adminTot>0 ? groupRow('📋','Admin / Logistics', adminTot, 0) : ''}
+        ${generalTot>0 ? groupRow('⚙️','General / Shared', generalTot, 0) : ''}
+        <tr style="border-top:2px solid var(--border2);font-weight:700;background:var(--cream2)">
+          <td style="padding:10px 12px">Total</td>
+          <td class="num" style="color:var(--red)">${money(total)}</td>
+          <td class="num c-green">${money(totalRev)}</td>
+          <td class="num ${totalRev-total>=0?'c-green':'c-red'}" style="font-weight:700">${money(totalRev-total)}</td>
+          <td style="color:var(--ink3)">100%</td>
+        </tr>
+      </tbody>
+    </table></div>
+  `);
+
+  // ── Revenue vs Expenditure grouped bar chart ──────────────
+  const chartStreams = [...ORCHARD_SUBS, ...STOCK_SUBS].filter(s => subSum('Orchards',s)+subSum('Livestock',s)+streamRev(s) > 0);
+  const chartExp = chartStreams.map(s => subSum('Orchards',s) + subSum('Livestock',s));
+  const chartRev = chartStreams.map(s => streamRev(s));
+
+  if (_charts['chart-rev-vs-exp']) _charts['chart-rev-vs-exp'].destroy();
+  const cRE = document.getElementById('chart-rev-vs-exp');
+  if (cRE) _charts['chart-rev-vs-exp'] = new Chart(cRE, {
     type: 'bar',
     data: {
-      labels: catLabels,
-      datasets: [{ data: catData, backgroundColor: catColors.slice(0, catLabels.length), borderRadius: 4 }]
+      labels: chartStreams,
+      datasets: [
+        {label:'Revenue',     data:chartRev, backgroundColor:'rgba(42,122,90,0.82)',  borderRadius:4},
+        {label:'Expenditure', data:chartExp, backgroundColor:'rgba(192,57,43,0.82)',  borderRadius:4},
+      ]
     },
     options: {
-      indexAxis: 'y',
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${money(ctx.parsed.x)}` } } },
-      scales: {
-        x: { ticks: { font:{size:10}, color:'#9A9A92', callback: v => '$'+v }, grid: { color:'rgba(0,0,0,0.04)' } },
-        y: { ticks: { font:{size:10}, color:'#5A5A54' }, grid: { display:false } }
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{font:{size:11},color:'#5A5A54',boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${money(ctx.parsed.y)}`}}
+      },
+      scales:{
+        x:{ticks:{font:{size:10},color:'#9A9A92',maxRotation:35},grid:{display:false}},
+        y:{ticks:{font:{size:11},color:'#9A9A92',callback:v=>'$'+v},grid:{color:'rgba(0,0,0,0.04)'}}
       }
     }
   });
 
-  // Monthly spend bar chart — last 6 months
-  const monthlyTotals = {};
-  rows.forEach(r => {
-    const m = rowMonth(r);
-    if (m) monthlyTotals[m] = (monthlyTotals[m]||0) + num(r['Amount USD']);
-  });
-  const months6 = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now); d.setMonth(d.getMonth()-i);
+  // ── Monthly spend bar chart (last 6 months) ───────────────
+  const months6=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now); d.setMonth(d.getMonth()-i);
     months6.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
   }
-  const monthLabels = months6.map(m => { const [y,mo] = m.split('-'); return ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(mo)] + ' ' + y.slice(2); });
-  const monthData   = months6.map(m => monthlyTotals[m]||0);
-  const barColors   = months6.map(m => m === thisM ? '#C0392B' : m === lastM ? '#E67E22' : '#E8E5DC');
+  const mLabels = months6.map(m => {
+    const [y,mo]=m.split('-');
+    return ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(mo)]+' '+y.slice(2);
+  });
+  const mData   = months6.map(m => rows.filter(r=>rowMonth(r)===m).reduce((s,r)=>s+num(r['Amount USD']),0));
+  const mColors = months6.map(m => m===thisM ? '#C0392B' : m===lastM ? '#E67E22' : '#E8E5DC');
 
   if (_charts['chart-monthly']) _charts['chart-monthly'].destroy();
-  const cm = document.getElementById('chart-monthly');
-  if (cm) _charts['chart-monthly'] = new Chart(cm, {
-    type: 'bar',
-    data: {
-      labels: monthLabels,
-      datasets: [{
-        label: 'Spend',
-        data: monthData,
-        backgroundColor: barColors,
-        borderRadius: 5,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` ${money(ctx.parsed.y)}` } }
-      },
-      scales: {
-        x: { ticks: { font:{size:11}, color:'#9A9A92' }, grid: { display:false } },
-        y: { ticks: { font:{size:11}, color:'#9A9A92', callback: v => '$'+v }, grid: { color:'rgba(0,0,0,0.04)' } }
+  const cM = document.getElementById('chart-monthly');
+  if (cM) _charts['chart-monthly'] = new Chart(cM, {
+    type:'bar',
+    data:{labels:mLabels, datasets:[{label:'Spend',data:mData,backgroundColor:mColors,borderRadius:5}]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>` ${money(ctx.parsed.y)}`}}},
+      scales:{
+        x:{ticks:{font:{size:11},color:'#9A9A92'},grid:{display:false}},
+        y:{ticks:{font:{size:11},color:'#9A9A92',callback:v=>'$'+v},grid:{color:'rgba(0,0,0,0.04)'}}
       }
     }
   });
 
-  // Transaction table
-  const sorted = [...rows].sort((a,b) => new Date(b['Date']) - new Date(a['Date']));
-  setHTML('ex-table', sorted.map(r => {
-    const amt = num(r['Amount USD']);
-    const area = r['Area']||'—';
-    const areaColor = area==='Livestock'?'bg':area==='Orchards'?'ba':area==='Infrastructure'?'bb':area.includes('Admin')?'bk':'bk';
-    return `<tr>
-      <td>${fmtDate(r['Date'])}</td>
-      <td style="font-weight:500">${r['Activity']||'—'}</td>
-      <td><span class="badge ${areaColor}">${area}</span></td>
-      <td style="font-size:12px;color:var(--ink3)">${r['Category']||'—'}</td>
-      <td class="num c-red" style="font-weight:500">${money(amt)}</td>
-      <td style="font-size:12px">${r['Person Responsible']||'—'}</td>
-      <td style="font-size:12px;color:var(--ink3)">${r['Supplier / Vendor']||'—'}</td>
-      <td style="font-size:12px;color:var(--ink3)">${r['Payment Method']||'—'}</td>
-      <td style="font-size:11px;color:var(--ink3)">${r['Receipt / Ref No']||'—'}</td>
-      <td style="font-size:11px;color:var(--ink3);max-width:160px">${r['Notes']||''}</td>
-    </tr>`;
-  }).join(''));
+  // ── Populate person dropdown ──────────────────────────────
+  const persons = [...new Set(rows.map(r=>r['Person Responsible']||'').filter(Boolean))].sort();
+  const pSel = document.getElementById('f-person');
+  if (pSel) {
+    pSel.innerHTML = '<option value="">All people</option>' + persons.map(p=>`<option>${p}</option>`).join('');
+  }
 
-  // Also render P&L now that we have expenditure data
+  filterExTable();
   renderPL();
 }
 
-// ─── P&L ──────────────────────────────────────────────────
+function filterExTable() {
+  const rows   = DB.expenditure;
+  const area   = (document.getElementById('f-area')?.value||'').trim();
+  const sub    = (document.getElementById('f-sub')?.value||'').trim().toLowerCase();
+  const cat    = (document.getElementById('f-cat')?.value||'').trim().toLowerCase();
+  const person = (document.getElementById('f-person')?.value||'').trim().toLowerCase();
+  const from   = document.getElementById('f-from')?.value||'';
+  const to     = document.getElementById('f-to')?.value||'';
+  const search = (document.getElementById('f-search')?.value||'').trim().toLowerCase();
+
+  const filtered = rows.filter(r => {
+    if (area   && r._area !== area) return false;
+    if (sub    && !(r._sub||'').toLowerCase().includes(sub)) return false;
+    if (cat    && !(r['Category']||'').toLowerCase().includes(cat)) return false;
+    if (person && !(r['Person Responsible']||'').toLowerCase().includes(person)) return false;
+    if (from   && (r['Date']||'') < from) return false;
+    if (to     && (r['Date']||'') > to)   return false;
+    if (search) {
+      const hay = [(r['Activity']||''),(r['Supplier / Vendor']||''),(r['Notes']||''),(r['Category']||'')].join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  }).sort((a,b) => new Date(b['Date']||0) - new Date(a['Date']||0));
+
+  const filtTotal = filtered.reduce((s,r)=>s+num(r['Amount USD']),0);
+  const countEl   = document.getElementById('ex-count');
+  const summEl    = document.getElementById('ex-filter-summary');
+  const totEl     = document.getElementById('ex-filter-total');
+  if (countEl) countEl.textContent = filtered.length + ' records';
+  if (summEl)  summEl.textContent  = filtered.length < rows.length ? `Showing ${filtered.length} of ${rows.length} transactions` : `All ${rows.length} transactions`;
+  if (totEl)   totEl.textContent   = filtered.length < rows.length ? `Filtered total: ${money(filtTotal)}` : '';
+
+  const areaColor = {'Livestock':'bg','Orchards':'ba','Infrastructure':'bb','Salaries':'bt','Admin / Logistics':'bk','General / Shared':'bk'};
+  setHTML('ex-table', filtered.length ? filtered.map(r => `<tr>
+    <td style="white-space:nowrap">${fmtDate(r['Date'])}</td>
+    <td style="font-weight:500;min-width:140px">${r['Activity']||'—'}</td>
+    <td><span class="badge ${areaColor[r._area]||'bk'}">${r._area||'—'}</span></td>
+    <td style="font-size:12px;color:var(--ink2)">${r._sub||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Category']||'—'}</td>
+    <td class="num c-red" style="font-weight:500;white-space:nowrap">${money(num(r['Amount USD']))}</td>
+    <td style="font-size:12px">${r['Person Responsible']||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Supplier / Vendor']||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Payment Method']||'—'}</td>
+    <td style="font-size:11px;color:var(--ink3)">${r['Receipt / Ref No']||'—'}</td>
+    <td style="font-size:11px;color:var(--ink3);min-width:120px">${r['Notes']||''}</td>
+  </tr>`).join('') : '<tr><td colspan="11" class="empty">No transactions match the selected filters</td></tr>');
+}
+
+function clearExFilters() {
+  ['f-area','f-sub','f-cat','f-person','f-from','f-to'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const s = document.getElementById('f-search'); if (s) s.value = '';
+  filterExTable();
+}
+
 function renderPL() {
   hide('pl-loading');
   show('pl-content');
-
   const sales = DB.sales;
   const costs = DB.expenditure;
-
-  const totalRev  = sales.reduce((s,r) => s + num(r['Total USD']), 0);
-  const totalCost = costs.reduce((s,r) => s + num(r['Amount USD']), 0);
+  const totalRev  = sales.reduce((s,r)=>s+num(r['Total USD']),0);
+  const totalCost = costs.reduce((s,r)=>s+num(r['Amount USD']),0);
   const netProfit = totalRev - totalCost;
-  const margin    = totalRev > 0 ? ((netProfit/totalRev)*100).toFixed(1) : 0;
+  const margin    = totalRev>0 ? ((netProfit/totalRev)*100).toFixed(1) : 0;
 
   setHTML('pl-metrics', `
     <div class="metric accent"><div class="metric-label">Total revenue</div><div class="metric-value">${money(totalRev)}</div></div>
@@ -1443,73 +1711,63 @@ function renderPL() {
     <div class="metric ${netProfit>=0?'accent':'danger'}"><div class="metric-label">Margin</div><div class="metric-value">${margin}<span class="metric-unit">%</span></div></div>
   `);
 
-  // Monthly chart — last 6 months
   const now = new Date();
   const months6 = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now); d.setMonth(d.getMonth()-i);
+  for(let i=5;i>=0;i--){
+    const d=new Date(now); d.setMonth(d.getMonth()-i);
     months6.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
   }
-  function rowMonth(r, dateKey) { return (r[dateKey]||'').slice(0,7); }
-  const monthLabels = months6.map(m => { const [y,mo] = m.split('-'); return ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(mo)] + ' ' + y.slice(2); });
-  const revByMonth  = months6.map(m => sales.filter(r => rowMonth(r,'Date')===m).reduce((s,r)=>s+num(r['Total USD']),0));
-  const costByMonth = months6.map(m => costs.filter(r => rowMonth(r,'Date')===m).reduce((s,r)=>s+num(r['Amount USD']),0));
+  const mLabels  = months6.map(m=>{const[y,mo]=m.split('-');return['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(mo)]+' '+y.slice(2);});
+  const revByM   = months6.map(m=>sales.filter(r=>(r['Date']||'').slice(0,7)===m).reduce((s,r)=>s+num(r['Total USD']),0));
+  const costByM  = months6.map(m=>costs.filter(r=>(r['Date']||'').slice(0,7)===m).reduce((s,r)=>s+num(r['Amount USD']),0));
 
   if (_charts['chart-pl']) _charts['chart-pl'].destroy();
   const cp = document.getElementById('chart-pl');
   if (cp) _charts['chart-pl'] = new Chart(cp, {
-    type: 'bar',
-    data: {
-      labels: monthLabels,
-      datasets: [
-        { label: 'Revenue', data: revByMonth,  backgroundColor: 'rgba(42,122,90,0.75)',  borderRadius: 4 },
-        { label: 'Costs',   data: costByMonth, backgroundColor: 'rgba(192,57,43,0.75)',  borderRadius: 4 },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { font:{size:11}, color:'#5A5A54', boxWidth:12 } },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${money(ctx.parsed.y)}` } }
-      },
-      scales: {
-        x: { ticks: { font:{size:11}, color:'#9A9A92' }, grid: { display:false } },
-        y: { ticks: { font:{size:11}, color:'#9A9A92', callback: v=>'$'+v }, grid: { color:'rgba(0,0,0,0.04)' } }
+    type:'bar',
+    data:{labels:mLabels, datasets:[
+      {label:'Revenue', data:revByM,  backgroundColor:'rgba(42,122,90,0.75)', borderRadius:4},
+      {label:'Costs',   data:costByM, backgroundColor:'rgba(192,57,43,0.75)', borderRadius:4},
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:11},color:'#5A5A54',boxWidth:12}}, tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${money(ctx.parsed.y)}`}}},
+      scales:{
+        x:{ticks:{font:{size:11},color:'#9A9A92'},grid:{display:false}},
+        y:{ticks:{font:{size:11},color:'#9A9A92',callback:v=>'$'+v},grid:{color:'rgba(0,0,0,0.04)'}}
       }
     }
   });
 
-  // P&L by area
-  const areas = [...new Set(costs.map(r => r['Area']||'Other'))];
-  // Revenue mapped loosely: Livestock area gets livestock sales, rest unallocated
-  const areaRevMap = { 'Livestock': sales.filter(r => !['Bananas','Pawpaw','Coffee','Apples','Grapes','Macadamia'].some(c => (r['Item']||'').includes(c))).reduce((s,r)=>s+num(r['Total USD']),0) };
+  const areas = [...new Set(costs.map(r=>r._area||'General'))];
   setHTML('pl-table', areas.map(area => {
-    const areaCost = costs.filter(r => (r['Area']||'Other')===area).reduce((s,r)=>s+num(r['Amount USD']),0);
-    const areaRev  = areaRevMap[area] || 0;
-    const net = areaRev - areaCost;
+    const c   = costs.filter(r=>(r._area||'General')===area).reduce((s,r)=>s+num(r['Amount USD']),0);
+    const rev = area==='Livestock'
+      ? ['Rabbits','Goats','Sheep'].reduce((s,sub)=>{ const kw={Rabbits:['rabbit','Rabbit','breeder','Meat','meat','Granaburst','urine'],Goats:['Goat','goat'],Sheep:['Sheep','sheep']}; return s+DB.sales.filter(r=>(kw[sub]||[sub]).some(k=>(r['Item']||'').includes(k))).reduce((ss,r)=>ss+num(r['Total USD']),0); },0)
+      : area==='Orchards'
+        ? ['Bananas','Apples','Coffee','Papaya','Passion Fruit','Grapes','Macadamia'].reduce((s,sub)=>{ const kw={Bananas:['Banana','banana'],Apples:['Apple','apple'],Coffee:['Coffee','coffee'],Papaya:['Papaya','papaya','Pawpaw'],['Passion Fruit']:['Passion','passion'],Grapes:['Grape','grape'],Macadamia:['Macadamia']}; return s+DB.sales.filter(r=>(kw[sub]||[sub]).some(k=>(r['Item']||'').includes(k))).reduce((ss,r)=>ss+num(r['Total USD']),0); },0)
+        : 0;
+    const net = rev - c;
     return `<tr>
       <td style="font-weight:500">${area}</td>
-      <td class="num c-red">${money(areaCost)}</td>
-      <td class="num c-green">${money(areaRev)}</td>
-      <td class="num ${net>=0?'c-green':'c-red'}" style="font-weight:500">${money(net)}</td>
+      <td class="num c-red">${money(c)}</td>
+      <td class="num c-green">${rev>0?money(rev):'—'}</td>
+      <td class="num ${net>=0?'c-green':'c-red'}">${rev>0?money(net):'—'}</td>
     </tr>`;
   }).join(''));
 
-  // Monthly table
-  setHTML('pl-monthly-table', months6.map((m, i) => {
-    const rev  = revByMonth[i];
-    const cost = costByMonth[i];
-    const net  = rev - cost;
-    const marg = rev > 0 ? ((net/rev)*100).toFixed(1) + '%' : '—';
+  setHTML('pl-monthly-table', months6.map((m,i)=>{
+    const r=revByM[i], c=costByM[i], net=r-c;
     return `<tr>
-      <td style="font-weight:500">${monthLabels[i]}</td>
-      <td class="num c-green">${money(rev)}</td>
-      <td class="num c-red">${money(cost)}</td>
-      <td class="num ${net>=0?'c-green':'c-red'}" style="font-weight:500">${money(net)}</td>
-      <td class="${net>=0?'c-green':'c-red'}">${marg}</td>
+      <td style="font-weight:500">${mLabels[i]}</td>
+      <td class="num c-green">${money(r)}</td>
+      <td class="num c-red">${money(c)}</td>
+      <td class="num ${net>=0?'c-green':'c-red'}">${money(net)}</td>
+      <td class="${net>=0?'c-green':'c-red'}">${r>0?((net/r)*100).toFixed(1)+'%':'—'}</td>
     </tr>`;
   }).join(''));
 }
+
 
 // ─── DOES (static) ────────────────────────────────────────
 function renderDoes() {
@@ -1553,10 +1811,84 @@ function renderDoes() {
 // INIT
 // ═══════════════════════════════════════════════════════════
 window.addEventListener('load', () => {
+  checkAuth();
   renderDoes();
   syncAll();
 });
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ─── AUTH ──────────────────────────────────────────────────
+const USERS = {
+  'tendai':   'Zvixx2024!',
+  'rebekah':  'FarmZviz#9',
+  'emilia':   'Emilia@Farm1',
+  'patience': 'Pat!2026Zv',
+};
+
+function doLogin() {
+  const user = (document.getElementById('login-user').value||'').trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value||'';
+  const err  = document.getElementById('login-err');
+  if (USERS[user] && USERS[user] === pass) {
+    sessionStorage.setItem('zv_auth', user);
+    document.getElementById('login-overlay').style.display = 'none';
+    err.style.display = 'none';
+  } else {
+    err.style.display = 'block';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
+  }
+}
+
+function checkAuth() {
+  const authed = sessionStorage.getItem('zv_auth');
+  if (!authed) {
+    document.getElementById('login-overlay').style.display = 'flex';
+  } else {
+    document.getElementById('login-overlay').style.display = 'none';
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('zv_auth');
+  checkAuth();
+}
+</script>
+
+<!-- ─── LOGIN OVERLAY ────────────────────────────────────── -->
+<div id="login-overlay" style="
+  position:fixed;inset:0;
+  background:var(--cream);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;
+">
+  <div style="
+    background:#fff;border:1px solid var(--border);
+    border-radius:var(--r);box-shadow:var(--shadow);
+    padding:40px 44px;width:100%;max-width:380px;
+  ">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-size:28px;margin-bottom:8px">🌿</div>
+      <div style="font-family:var(--display);font-size:20px;font-weight:600;letter-spacing:-0.01em">Zvizegwe Farm</div>
+      <div style="font-size:13px;color:var(--ink3);margin-top:4px">Sign in to view the dashboard</div>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <div class="form-label">Username</div>
+      <input type="text" id="login-user" placeholder="Enter your username" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="form-group" style="margin-bottom:22px">
+      <div class="form-label">Password</div>
+      <input type="password" id="login-pass" placeholder="Enter your password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="login-err" style="display:none;font-size:12px;color:var(--red);margin-bottom:14px;padding:8px 12px;background:var(--red-l);border-radius:var(--r-sm)">
+      Incorrect username or password.
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()" style="width:100%;padding:11px">Sign in</button>
+    <div style="margin-top:16px;font-size:11px;color:var(--ink3);text-align:center">
+      Contact the farm manager to request access.
+    </div>
+  </div>
+</div>
 </body>
 </html>

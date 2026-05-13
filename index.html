@@ -285,6 +285,9 @@ tbody tr:hover td { background: var(--cream); }
   <button class="nav-item" onclick="nav('rabbits',this)"><span class="nav-dot"></span>Daily Headcounts</button>
   <button class="nav-item" onclick="nav('does',this)"><span class="nav-dot"></span>Breeding Does</button>
   <button class="nav-item" onclick="nav('weights',this)"><span class="nav-dot"></span>Weaner Weights</button>
+  <div class="nav-section">Individual Records</div>
+  <button class="nav-item" onclick="nav('goat-individual',this)"><span class="nav-dot"></span>Goat Register</button>
+  <button class="nav-item" onclick="nav('sheep-individual',this)"><span class="nav-dot"></span>Sheep Register</button>
 
   <div class="nav-section">Other Livestock</div>
   <button class="nav-item" onclick="nav('goats',this)"><span class="nav-dot"></span>Goats</button>
@@ -297,6 +300,7 @@ tbody tr:hover td { background: var(--cream); }
   <button class="nav-item" onclick="nav('pl',this)"><span class="nav-dot"></span>Profit & Loss</button>
 
   <div class="nav-section">Orchards</div>
+  <button class="nav-item" onclick="nav('orchard-plots',this)"><span class="nav-dot"></span>Plot Summary</button>
   <button class="nav-item" onclick="nav('orchards',this)"><span class="nav-dot"></span>Activities</button>
   <button class="nav-item" onclick="nav('yield',this)"><span class="nav-dot"></span>Yield Records</button>
 
@@ -325,9 +329,9 @@ tbody tr:hover td { background: var(--cream); }
         <tbody id="dash-herd"></tbody></table>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">Latest rabbit entry detail</span></div>
+        <div class="card-header"><span class="card-title">Latest orchard activity</span><span class="card-pill" id="dash-orch-pill">—</span></div>
         <table><thead><tr><th>Field</th><th>Value</th></tr></thead>
-        <tbody id="dash-detail"></tbody></table>
+        <tbody id="dash-orchard-latest"></tbody></table>
       </div>
     </div>
     <div class="g2">
@@ -386,19 +390,29 @@ tbody tr:hover td { background: var(--cream); }
 <div id="page-does" class="page">
   <div class="page-eyebrow">Rabbits</div>
   <div class="page-title">Breeding Does Register</div>
-  <div class="page-sub">161 adult females — cage, breed and mating records</div>
-  <div class="metrics">
-    <div class="metric accent"><div class="metric-label">Total does</div><div class="metric-value">161</div></div>
-    <div class="metric"><div class="metric-label">NZ White</div><div class="metric-value">~130</div></div>
-    <div class="metric"><div class="metric-label">Californian</div><div class="metric-value">~25</div></div>
-    <div class="metric"><div class="metric-label">Cinnamon/Cross</div><div class="metric-value">~6</div></div>
+  <div class="page-sub">Individual doe records · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/11NA-FPF1aRAqB1lmt7DV3n7QrU0O8SSxcHJA-6yOlXk" target="_blank">✏️ Edit sheet</a> — publish to web to see live data</div>
+  <div id="does-loading" class="loading-wrap"><div class="spinner"></div>Loading does register…</div>
+  <div id="does-err" class="err-bar" style="display:none"></div>
+  <div id="does-content" style="display:none">
+    <div class="metrics" id="does-metrics"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Breeding does — full register</span><span class="card-pill" id="does-count">0 records</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Date</th><th>Tag</th><th>Cage</th><th>Breed</th><th>Age (mo)</th><th>Weight (kg)</th><th>Litter #</th><th>Kits Born</th><th>Kits Alive 21d</th><th>Date Mated</th><th>Buck</th><th>Expected Birth</th><th>Actual Birth</th><th>Notes</th></tr></thead>
+        <tbody id="does-table"></tbody>
+      </table></div>
+    </div>
   </div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Doe register — cage records</span></div>
-    <div class="table-scroll"><table>
-      <thead><tr><th>Tag</th><th>Cage</th><th>Breed</th><th>Last Mated</th><th>Last Birth</th></tr></thead>
-      <tbody id="does-table"></tbody>
-    </table></div>
+  <!-- Static fallback while sheet not yet published -->
+  <div id="does-static" style="display:none">
+    <div class="info-bar">📋 Showing last known data. Publish the sheet to web to see live records.</div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Doe register (static — last known)</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Tag</th><th>Cage</th><th>Breed</th><th>Last Mated</th><th>Last Birth</th></tr></thead>
+        <tbody id="does-static-table"></tbody>
+      </table></div>
+    </div>
   </div>
 </div>
 
@@ -406,34 +420,83 @@ tbody tr:hover td { background: var(--cream); }
 <div id="page-weights" class="page">
   <div class="page-eyebrow">Rabbits</div>
   <div class="page-title">Weaner Weights</div>
-  <div class="page-sub">Grow-out batch weigh-ins — groups A through D</div>
-  <div class="metrics">
-    <div class="metric accent"><div class="metric-label">Groups</div><div class="metric-value">16</div></div>
-    <div class="metric"><div class="metric-label">Weighed</div><div class="metric-value">59</div></div>
-    <div class="metric"><div class="metric-label">Avg weight</div><div class="metric-value">1.94<span class="metric-unit"> kg</span></div></div>
-    <div class="metric"><div class="metric-label">Heaviest</div><div class="metric-value">2.3<span class="metric-unit"> kg</span></div></div>
+  <div class="page-sub">Grow-out batch weigh-ins · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1PLDUqdSHmol_NT2KH8F4TTqtp8cruVxMueXfQ5fYgRQ" target="_blank">✏️ Edit sheet</a></div>
+  <div id="wt-loading" class="loading-wrap"><div class="spinner"></div>Loading weaner weights…</div>
+  <div id="wt-err" class="err-bar" style="display:none"></div>
+  <div id="wt-content" style="display:none">
+    <div class="metrics" id="wt-metrics"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Weaner weight records</span><span class="card-pill" id="wt-count">0 records</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Date</th><th>Group</th><th>Batch</th><th>Species</th><th>Animals</th><th>Avg (kg)</th><th>Min</th><th>Max</th><th>Age (wks)</th><th>Stage</th><th>Pen</th><th>Notes</th></tr></thead>
+        <tbody id="wt-table"></tbody>
+      </table></div>
+    </div>
   </div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Group weight summary</span></div>
-    <table><thead><tr><th>Group</th><th>Animals</th><th>Avg (kg)</th><th>Min</th><th>Max</th><th>Status</th></tr></thead>
-    <tbody>
-      <tr><td class="num">AW1</td><td>5</td><td class="num">1.72</td><td>1.5</td><td>1.9</td><td><span class="badge ba">Grow-out A</span></td></tr>
-      <tr><td class="num">AW2</td><td>5</td><td class="num">1.78</td><td>1.6</td><td>1.9</td><td><span class="badge ba">Grow-out A</span></td></tr>
-      <tr><td class="num">AW3</td><td>4</td><td class="num">1.90</td><td>1.7</td><td>2.2</td><td><span class="badge ba">Grow-out A</span></td></tr>
-      <tr><td class="num">AW4</td><td>5</td><td class="num">1.76</td><td>1.5</td><td>2.0</td><td><span class="badge ba">Grow-out A</span></td></tr>
-      <tr><td class="num">AW5</td><td>4</td><td class="num">1.80</td><td>1.7</td><td>2.0</td><td><span class="badge ba">Grow-out A</span></td></tr>
-      <tr><td class="num">AW6</td><td>4</td><td class="num">1.90</td><td>1.8</td><td>2.0</td><td><span class="badge ba">Grow-out A</span></td></tr>
-      <tr><td class="num">BW1</td><td>3</td><td class="num">1.97</td><td>1.9</td><td>2.0</td><td><span class="badge bg">Grow-out B</span></td></tr>
-      <tr><td class="num">BW2</td><td>4</td><td class="num">1.98</td><td>1.7</td><td>2.2</td><td><span class="badge bg">Grow-out B</span></td></tr>
-      <tr><td class="num">BW3</td><td>3</td><td class="num">1.83</td><td>1.7</td><td>2.0</td><td><span class="badge bg">Grow-out B</span></td></tr>
-      <tr><td class="num">BW4</td><td>2</td><td class="num">2.25</td><td>2.2</td><td>2.3</td><td><span class="badge bg">Near market</span></td></tr>
-      <tr><td class="num">CW1</td><td>3</td><td class="num">2.00</td><td>1.9</td><td>2.1</td><td><span class="badge bb">Grow-out C</span></td></tr>
-      <tr><td class="num">CW2</td><td>3</td><td class="num">2.03</td><td>1.9</td><td>2.2</td><td><span class="badge bb">Grow-out C</span></td></tr>
-      <tr><td class="num">CW3</td><td>3</td><td class="num">2.00</td><td>1.9</td><td>2.1</td><td><span class="badge bb">Grow-out C</span></td></tr>
-      <tr><td class="num">CW4</td><td>3</td><td class="num">2.00</td><td>1.9</td><td>2.1</td><td><span class="badge bb">Grow-out C</span></td></tr>
-      <tr><td class="num">DW5</td><td>4</td><td class="num">2.00</td><td>1.9</td><td>2.2</td><td><span class="badge" style="background:#EEE8F8;color:#5A3E9A">Grow-out D</span></td></tr>
-      <tr><td class="num">DW6</td><td>4</td><td class="num">2.05</td><td>1.9</td><td>2.2</td><td><span class="badge" style="background:#EEE8F8;color:#5A3E9A">Grow-out D</span></td></tr>
-    </tbody></table>
+  <div id="wt-static" style="display:none">
+    <div class="info-bar">Showing last known static data. Publish the sheet to web for live records.</div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Group weight summary (static)</span></div>
+      <table><thead><tr><th>Group</th><th>Animals</th><th>Avg (kg)</th><th>Min</th><th>Max</th><th>Stage</th></tr></thead>
+      <tbody id="wt-static-table"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ─── GOAT INDIVIDUAL ─────────────────────────────────── -->
+<div id="page-goat-individual" class="page">
+  <div class="page-eyebrow">Goats</div>
+  <div class="page-title">Goat Individual Records</div>
+  <div class="page-sub">Breeding, weights and individual tracking · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1kleqdiwY6ahocH1fMgeKPpL6mOxNRkrteH_FPvHcSJk" target="_blank">✏️ Edit sheet</a></div>
+  <div id="gi-loading" class="loading-wrap"><div class="spinner"></div>Loading goat records…</div>
+  <div id="gi-err" class="err-bar" style="display:none"></div>
+  <div id="gi-content" style="display:none">
+    <div class="metrics" id="gi-metrics"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Individual goat register</span><span class="card-pill" id="gi-count">0 records</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Date</th><th>Tag</th><th>Breed</th><th>Sex</th><th>Age (mo)</th><th>Weight</th><th>Status</th><th>Pen</th><th>Last Mated</th><th>Expected Kids</th><th>Kids Born</th><th>Notes</th></tr></thead>
+        <tbody id="gi-table"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SHEEP INDIVIDUAL ────────────────────────────────── -->
+<div id="page-sheep-individual" class="page">
+  <div class="page-eyebrow">Sheep</div>
+  <div class="page-title">Sheep Individual Records</div>
+  <div class="page-sub">Breeding, weights and individual tracking · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1SiwgFLKSulROykzYuNKaJW1UPl3y8plufsOtdKZfboE" target="_blank">✏️ Edit sheet</a></div>
+  <div id="si-loading" class="loading-wrap"><div class="spinner"></div>Loading sheep records…</div>
+  <div id="si-err" class="err-bar" style="display:none"></div>
+  <div id="si-content" style="display:none">
+    <div class="metrics" id="si-metrics"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Individual sheep register</span><span class="card-pill" id="si-count">0 records</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Date</th><th>Tag</th><th>Breed</th><th>Sex</th><th>Age (mo)</th><th>Weight</th><th>Status</th><th>Pen</th><th>Last Mated</th><th>Expected Lambs</th><th>Lambs Born</th><th>Notes</th></tr></thead>
+        <tbody id="si-table"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── ORCHARD PLOT SUMMARY ────────────────────────────── -->
+<div id="page-orchard-plots" class="page">
+  <div class="page-eyebrow">Orchards</div>
+  <div class="page-title">Plot Summary</div>
+  <div class="page-sub">Holes dug, plants and yield per plot · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1rILRXozFgH-DMmLE_2a3eAF9VmbC6SOzjsXgnE0yD7E" target="_blank">✏️ Edit sheet</a></div>
+  <div id="op-loading" class="loading-wrap"><div class="spinner"></div>Loading plot data…</div>
+  <div id="op-err" class="err-bar" style="display:none"></div>
+  <div id="op-content" style="display:none">
+    <div class="metrics" id="op-metrics"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Plot summary — all crops</span><span class="card-pill" id="op-count">0 plots</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Crop</th><th>Block</th><th>Holes Dug</th><th>Plants</th><th>Year</th><th>Age (yr)</th><th>Yield Status</th><th>Notes</th></tr></thead>
+        <tbody id="op-table"></tbody>
+      </table></div>
+    </div>
   </div>
 </div>
 
@@ -487,7 +550,7 @@ tbody tr:hover td { background: var(--cream); }
     <div class="card">
       <div class="card-header"><span class="card-title">All health events</span><span class="card-pill" id="h-count">0 records</span></div>
       <div class="table-scroll">
-        <table><thead><tr><th>Date</th><th>Species</th><th>Tag</th><th>Condition</th><th>Treatment</th><th>Status</th><th>Cost</th><th>By</th></tr></thead>
+        <table><thead><tr><th>Date</th><th>Species</th><th>Tag</th><th>Condition</th><th>Treatment</th><th>Status</th></tr></thead>
         <tbody id="h-table"></tbody></table>
       </div>
     </div>
@@ -525,7 +588,7 @@ tbody tr:hover td { background: var(--cream); }
     <div class="card">
       <div class="card-header"><span class="card-title">Activity log</span><span class="card-pill" id="o-count">0 records</span></div>
       <div class="table-scroll">
-        <table><thead><tr><th>Date</th><th>Crop</th><th>Block</th><th>Activity</th><th>Product</th><th>Rate/Qty</th><th>Staff</th><th>Cost</th><th>Notes</th></tr></thead>
+        <table><thead><tr><th>Date</th><th>Crop</th><th>Block</th><th>Activity</th><th>Product</th><th>Rate/Qty</th><th>Staff</th><th>Notes</th></tr></thead>
         <tbody id="o-table"></tbody></table>
       </div>
     </div>
@@ -751,7 +814,12 @@ const SHEETS = {
   sales:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQE074lh3k1j1UlVWtEsvoN4eHdKvYVoZinYxJ8gOl8SLPTYc7tuBGvXcJnmCnzovEgJBKoGfUdqiq7/pub?gid=199833556&single=true&output=csv',
   orchards: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTk117IOc5zNwOtnjDWrPhPQKBi0F97NWu6Ie-tr_yPWqkx-Rp3GQY4-hcBMuBvT8e6ntKV4RTJibZK/pub?gid=1803548833&single=true&output=csv',
   yield:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKwgpoPaYRJnytfbOpWqx-KAatQwI51uFn_tc9RBhl5OUWymRrOcgUg_6L1LTxp8X3_Ztb8mJ2lhin/pub?gid=959975502&single=true&output=csv',
-  expenditure: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRtXKK1nxNi7PSn4b-gtE--ylgQUfEzootijKzrp-jGdn557_lhuNpKhPL-a2qOq5GC6ZWVRjD0Ckj6/pub?gid=729048945&single=true&output=csv',
+  expenditure:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vRtXKK1nxNi7PSn4b-gtE--ylgQUfEzootijKzrp-jGdn557_lhuNpKhPL-a2qOq5GC6ZWVRjD0Ckj6/pub?gid=729048945&single=true&output=csv',
+  does_register:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vS6y3XZQ9gDJhGExeT3X4kdLoCzFwxm82X9Fn2V57XdPbFohOSd8jdPLJW00nAm9IWCUHwQ4G1vmf1k/pub?gid=910147656&single=true&output=csv',
+  weaner_weights:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTgSBgo_quYtwC4_K8lxot_5c61y-sOkS781v86WGZmne-OGMI3bWpdTe1y2CAVL1DdntpTQ-VBNr4A/pub?gid=1886590726&single=true&output=csv',
+  goat_individual: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRAwrFLGe2HKE7zky_NF3pZXpVyTj_NdK7_e3ZcPXFmP2bgtLflpoqQTIGFcjBaZwGV-EX9kc3Iviah/pub?gid=731198984&single=true&output=csv',
+  sheep_individual:'https://docs.google.com/spreadsheets/d/e/2PACX-1vSxgLUDl0rya-twZ5TiILorMC8BgqN-N72c70jKHKnLbPQrBnUBd-9sDEp9lsMjRPhRMs-_EOiHpqj4/pub?gid=1862327671&single=true&output=csv',
+  orchard_plots:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyagjB-JdN7IeZeg9VDqpKWbTqTdKd6XA8C6hY99S4QPY2Wuc5Vj3qh4I7T-3h6SU5OtWJgXfTTXOF/pub?gid=465361097&single=true&output=csv',
 };
 function csvUrl(key) {
   return SHEETS[key];
@@ -846,7 +914,7 @@ function setTab(prefix, id, btn) {
 // ═══════════════════════════════════════════════════════════
 // STORED DATA
 // ═══════════════════════════════════════════════════════════
-const DB = { rabbits:[], goats:[], sheep:[], health:[], sales:[], orchards:[], yield:[], expenditure:[] };
+const DB = { rabbits:[], goats:[], sheep:[], health:[], sales:[], orchards:[], yield:[], expenditure:[], does_register:[], weaner_weights:[], goat_individual:[], sheep_individual:[], orchard_plots:[] };
 
 // ═══════════════════════════════════════════════════════════
 // SYNC ALL
@@ -971,48 +1039,23 @@ function renderDashboard() {
     <tr><td><strong>Sheep</strong></td><td class="num">${sTotal}</td><td>${num(latestS['Adult Rams'])||2}</td><td>${num(latestS['Adult Ewes'])||34}</td><td>${(num(latestS['Lambs'])||2)} lambs</td><td>${num(latestS['Pregnant Ewes'])||11}</td></tr>
   `);
 
-  // Latest detail
-  const feed = latestR['Feed Used'] || '—';
-  const by   = latestR['Recorded By'] || '—';
-  setHTML('dash-detail', `
-    <tr><td style="color:var(--ink3)">Date</td><td class="num">${fmtDate(latestRDate)}</td></tr>
-    <tr><td style="color:var(--ink3)">Recorded by</td><td>${by}</td></tr>
-    <tr><td style="color:var(--ink3)">Total rabbits</td><td class="num c-green">${fmtNum(rTotal)}</td></tr>
-    <tr><td style="color:var(--ink3)">Pregnant does</td><td class="num">${rPreg}</td></tr>
-    <tr><td style="color:var(--ink3)">Male adults</td><td class="num">${rMale}</td></tr>
-    <tr><td style="color:var(--ink3)">Female adults</td><td class="num">${rFem}</td></tr>
-    <tr><td style="color:var(--ink3)">Kits (M / F)</td><td class="num">${rKitsM} / ${rKitsF}</td></tr>
-    <tr><td style="color:var(--ink3)">Births today</td><td class="num c-green">${num(latestR['Births Male'])+num(latestR['Births Female'])}</td></tr>
-    <tr><td style="color:var(--ink3)">Deaths today</td><td class="num ${num(latestR['Deaths Male'])+num(latestR['Deaths Female'])>0?'c-red':''}">${num(latestR['Deaths Male'])+num(latestR['Deaths Female'])}</td></tr>
-    <tr><td style="color:var(--ink3)">Feed used</td><td style="font-size:12px">${feed}</td></tr>
-  `);
-
-  // Health alerts
-  const activeH = health.filter(r => (r['Status']||'').toLowerCase() === 'active');
-  if (activeH.length) {
-    document.getElementById('dash-alert-pill').style.display = '';
-    document.getElementById('dash-alert-pill').textContent = `${activeH.length} active`;
+  // Latest orchard activity
+  const orchRows = DB.orchards;
+  const latestO  = orchRows.length ? orchRows.slice().sort((a,b)=>new Date(b['Date'])-new Date(a['Date']))[0] : null;
+  const orchPill = document.getElementById('dash-orch-pill');
+  if (latestO) {
+    if (orchPill) orchPill.textContent = fmtDate(latestO['Date']);
+    setHTML('dash-orchard-latest', `
+      <tr><td style="color:var(--ink3)">Date</td><td>${fmtDate(latestO['Date'])}</td></tr>
+      <tr><td style="color:var(--ink3)">Crop</td><td style="font-weight:500">${latestO['Crop']||'—'}</td></tr>
+      <tr><td style="color:var(--ink3)">Block</td><td>${latestO['Block']||'—'}</td></tr>
+      <tr><td style="color:var(--ink3)">Activity</td><td>${latestO['Activity Type']||'—'}</td></tr>
+      <tr><td style="color:var(--ink3)">Staff</td><td style="font-size:12px">${latestO['Staff']||'—'}</td></tr>
+      <tr><td style="color:var(--ink3)">Notes</td><td style="font-size:12px;color:var(--ink3)">${latestO['Notes']||'—'}</td></tr>
+    `);
+  } else {
+    setHTML('dash-orchard-latest', '<tr><td colspan="2" class="empty">No orchard data loaded yet</td></tr>');
   }
-  setHTML('dash-health-content', activeH.length
-    ? '<table><thead><tr><th>Date</th><th>Species</th><th>Tag</th><th>Condition</th><th>Status</th></tr></thead><tbody>' +
-      activeH.map(r => `<tr><td>${fmtDate(r['Date'])}</td><td>${r['Species']}</td><td>${r['Animal Tag']}</td><td>${r['Condition']}</td><td>${statusBadge(r['Status'])}</td></tr>`).join('') +
-      '</tbody></table>'
-    : `<div class="empty">No active alerts — <span class="c-green">all good</span></div>`
-  );
-
-  // Recent sales
-  const recentSales = [...sales].slice(0,6);
-  const revenueLabel = money(totalRevenue);
-  document.getElementById('dash-sales-pill').textContent = revenueLabel + ' total';
-  setHTML('dash-sales-content', recentSales.length
-    ? '<table><thead><tr><th>Date</th><th>Client</th><th>Item</th><th>Total</th><th>Status</th></tr></thead><tbody>' +
-      recentSales.map(r => `<tr><td>${fmtDate(r['Date'])}</td><td>${r['Client']||'—'}</td><td>${r['Item']}</td><td class="num c-green">${money(r['Total USD'])}</td><td>${statusBadge(r['Payment Status'])}</td></tr>`).join('') +
-      '</tbody></table>'
-    : '<div class="empty">No sales records</div>'
-  );
-
-  // ── Trend chart ──
-  buildTrendChart();
 
   // Gaps check
   const today = new Date().toISOString().slice(0,10);
@@ -1305,7 +1348,31 @@ function renderOrchards() {
     </div>`;
   }).join(''));
 
-  setHTML('o-table', rows.map(r => `<tr>
+  filterOrchardTable();
+}
+
+function filterOrchardTable() {
+  const rows  = DB.orchards;
+  const crop  = (document.getElementById('o-filter-crop')?.value || '').trim();
+  const block = (document.getElementById('o-filter-block')?.value || '').trim();
+  const from  = document.getElementById('o-filter-from')?.value || '';
+  const to    = document.getElementById('o-filter-to')?.value || '';
+
+  const filtered = rows.filter(r => {
+    if (crop  && (r['Crop']||'')  !== crop)  return false;
+    if (block && (r['Block']||'') !== block) return false;
+    if (from  && (r['Date']||'')  <  from)   return false;
+    if (to    && (r['Date']||'')  >  to)     return false;
+    return true;
+  });
+
+  const cEl = document.getElementById('o-count');
+  const sEl = document.getElementById('o-filter-summary');
+  if (cEl) cEl.textContent = filtered.length + ' records';
+  if (sEl) sEl.textContent = filtered.length < rows.length
+    ? `Showing ${filtered.length} of ${rows.length} activities` : '';
+
+  setHTML('o-table', filtered.map(r => `<tr>
     <td>${fmtDate(r['Date'])}</td>
     <td>${r['Crop']||'—'}</td>
     <td style="color:var(--ink3)">${r['Block']||'—'}</td>
@@ -1313,9 +1380,15 @@ function renderOrchards() {
     <td style="font-size:12px;color:var(--ink3)">${r['Product Used']||'—'}</td>
     <td style="font-size:12px">${r['Quantity / Rate']||'—'}</td>
     <td style="font-size:12px;color:var(--ink3)">${r['Staff']||'—'}</td>
-    <td class="num">${r['Cost USD']&&r['Cost USD']!='0'?money(r['Cost USD']):'—'}</td>
     <td style="font-size:12px;color:var(--ink3);max-width:180px">${r['Notes']||''}</td>
-  </tr>`).join(''));
+  </tr>`).join('') || '<tr><td colspan="8" class="empty">No activities match filter</td></tr>');
+}
+
+function clearOrchardFilters() {
+  ['o-filter-crop','o-filter-block','o-filter-from','o-filter-to'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  filterOrchardTable();
 }
 
 // ─── YIELD ────────────────────────────────────────────────
@@ -1777,47 +1850,151 @@ function renderPL() {
 }
 
 
-// ─── DOES (static) ────────────────────────────────────────
-function renderDoes() {
-  const does = [
-    ['Z021','1C','NZ White','31 Mar 2026','19 Feb 2026'],['Z088','1D','NZ White','18 Jan 2026','12 Jan 2025'],
-    ['Z027','1E','NZ White','04 Jun 2026','02 Nov 2026'],['Z025','1G','NZ White','06 Apr 2026','19 Dec 2026'],
-    ['Z026','1F','NZ White','16 Mar 2026','08 Jan 2026'],['Z022','1H','NZ White','03 Jun 2026','03 Mar 2026'],
-    ['Z020','1J','NZ White','18 Mar 2026','03 Jan 2026'],['Z019','1K','NZ White','30 Mar 2026','07 Nov 2025'],
-    ['Z013','1M','NZ White','31 Mar 2026','05 Jan 2026'],['Z033','2B','NZ White','16 Mar 2026','13 Jan 2026'],
-    ['Z036','2F','NZ White','30 Mar 2026','16 Feb 2026'],['U065','2G','NZ White','31 Mar 2026','22 Feb 2026'],
-    ['Z038','2H','NZ White','30 Mar 2026','08 Nov 2025'],['Z040','2K','NZ White','18 Mar 2026','13 Mar 2026'],
-    ['U059','3A','NZ White','16 Mar 2026','19 Feb 2026'],['Z045','3F','NZ White','31 Mar 2026','25 Feb 2026'],
-    ['Z003','4B','NZ White','25 Feb 2026','30 Mar 2026'],['Z002','4C','NZ White','16 Mar 2026','21 Feb 2026'],
-    ['Z095','4G','NZ White','25 Feb 2026','25 Mar 2026'],['Z009','4K','NZ White','31 Mar 2026','23 Mar 2025'],
-    ['Z004','4M','NZ White','25 Feb 2026','29 Mar 2026'],['U026','6B','NZ White','25 Feb 2026','30 Mar 2026'],
-    ['U029','6E','NZ White','18 Mar 2026','13 Mar 2026'],['U031','6G','NZ White','18 Mar 2026','15 Mar 2026'],
-    ['U032','6J','NZ White','18 Mar 2026','17 Mar 2026'],['Z015','7A','NZ White','16 Apr 2026','05 Jan 2026'],
-    ['U018','7E','Californian White','18 Mar 2026','05 Jan 2026'],['U019','7F','Californian White','16 Mar 2026','17 Jan 2026'],
-    ['U022','7K','Californian White','18 Mar 2026','05 Jan 2026'],['U013','7L','Californian White','03 Feb 2026','03 Apr 2026'],
-    ['U024','7M','Californian White','02 Mar 2026','03 Apr 2026'],['Z018','8A','NZ White','17 Feb 2026','24 Mar 2026'],
-    ['U003','8C','NZ White','18 Mar 2026','10 Jan 2026'],['U006','8F','NZ White','30 Mar 2026','19 Feb 2026'],
-    ['U005','8G','NZ White','09 Mar 2026','05 Jan 2026'],['Z010','9A','NZ White','01 Apr 2026','17 Jan 2026'],
-    ['U066','9F','NZ White','01 Apr 2026','26 Mar 2026'],['U077','9G','NZ White','01 Apr 2026','16 Mar 2026'],
-    ['U057','9J','NZ White','31 Mar 2026','09 Feb 2026'],['U056','9K','NZ White','06 Apr 2026','19 Mar 2026'],
-    ['U055','9L','NZ White','23 Feb 2026','25 Mar 2026'],['Z086','12G','Cinnamon','01 Apr 2026','18 Jan 2026'],
-    ['Z072','12L','Californian White','09 Mar 2026','09 Feb 2026'],['Z068','12M','Californian White','31 Mar 2026','23 Feb 2026'],
-    ['D074','17H','Californian White','18 Feb 2026','23 Mar 2026'],['D064','18A','NZ White','18 Feb 2026','23 Mar 2026'],
-    ['F001','19K','NZ White','19 Feb 2026','20 Mar 2026'],['D027','19L','NZ White','19 Feb 2026','18 Mar 2026'],
-  ];
-  setHTML('does-table', does.map(([tag,cage,breed,mated,birth]) =>
-    `<tr>
-      <td class="num">${tag}</td><td>${cage}</td>
-      <td><span class="badge ${breed==='NZ White'?'bg':'bb'}">${breed}</span></td>
-      <td style="color:var(--ink3)">${mated}</td>
-      <td style="color:var(--ink3)">${birth||'—'}</td>
-    </tr>`
-  ).join(''));
+
+
+function renderWeaners() {
+  const rows = DB.weaner_weights;
+  const loadEl = document.getElementById('wt-loading');
+  if (loadEl) loadEl.style.display = 'none';
+  if (!rows.length) {
+    const staticEl = document.getElementById('wt-static');
+    const STATIC = [
+      ['AW1',5,1.72,1.5,1.9,'Grow-out A'],['AW2',5,1.78,1.6,1.9,'Grow-out A'],
+      ['AW3',4,1.90,1.7,2.2,'Grow-out A'],['BW1',3,1.97,1.9,2.0,'Grow-out B'],
+      ['BW2',4,1.98,1.7,2.2,'Grow-out B'],['BW4',2,2.25,2.2,2.3,'Near market'],
+      ['CW1',3,2.00,1.9,2.1,'Grow-out C'],['DW5',4,2.00,1.9,2.2,'Grow-out D'],
+      ['DW6',4,2.05,1.9,2.2,'Grow-out D'],
+    ];
+    setHTML('wt-static-table', STATIC.map(([g,n,avg,mn,mx,st]) =>
+      `<tr><td class="num">${g}</td><td>${n}</td><td class="num">${avg}</td><td>${mn}</td><td>${mx}</td><td><span class="badge ba">${st}</span></td></tr>`
+    ).join(''));
+    if (staticEl) staticEl.style.display = '';
+    return;
+  }
+  show('wt-content');
+  document.getElementById('wt-count').textContent = rows.length + ' records';
+  const total = rows.reduce((s,r) => s + num(r['No. of Animals']), 0);
+  const avgW  = rows.reduce((s,r) => s + num(r['Avg Weight (kg)']), 0) / (rows.length || 1);
+  setHTML('wt-metrics', `
+    <div class="metric accent"><div class="metric-label">Groups</div><div class="metric-value">${rows.length}</div></div>
+    <div class="metric"><div class="metric-label">Animals</div><div class="metric-value">${total}</div></div>
+    <div class="metric"><div class="metric-label">Avg weight</div><div class="metric-value">${avgW.toFixed(2)}<span class="metric-unit"> kg</span></div></div>
+  `);
+  setHTML('wt-table', rows.map(r => `<tr>
+    <td>${fmtDate(r['Date'])}</td><td>${r['Group ID']||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Batch/Litter Tag']||'—'}</td>
+    <td>${r['Species']||'—'}</td><td>${r['No. of Animals']||'—'}</td>
+    <td class="num">${r['Avg Weight (kg)']||'—'}</td>
+    <td class="num">${r['Min Weight (kg)']||'—'}</td>
+    <td class="num">${r['Max Weight (kg)']||'—'}</td>
+    <td>${r['Age (weeks)']||'—'}</td>
+    <td><span class="badge ${(r['Stage']||'').includes('market')?'bg':'ba'}">${r['Stage']||'—'}</span></td>
+    <td style="font-size:12px">${r['Cage/Pen']||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Notes']||''}</td>
+  </tr>`).join(''));
 }
 
-// ═══════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════
+function renderIndividualAnimals(key, cfg) {
+  const rows = DB[key];
+  const loadEl = document.getElementById(cfg.loadId);
+  if (loadEl) loadEl.style.display = 'none';
+  if (!rows.length) {
+    const errEl = document.getElementById(cfg.errId);
+    if (errEl) {
+      errEl.style.display = '';
+      errEl.textContent = 'Publish the sheet to web and add the CSV URL to SHEETS.' + key;
+    }
+    return;
+  }
+  show(cfg.contentId);
+  document.getElementById(cfg.countId).textContent = rows.length + ' records';
+  const males    = rows.filter(r => (r['Sex']||'').toLowerCase() === 'male').length;
+  const females  = rows.filter(r => (r['Sex']||'').toLowerCase() === 'female').length;
+  const breeders = rows.filter(r => (r['Status']||'').toLowerCase().includes('breed')).length;
+  const weaners  = rows.filter(r => (r['Status']||'').toLowerCase().includes('weaner')).length;
+  const wtRows   = rows.filter(r => num(r['Weight (kg)']) > 0);
+  const avgWt    = wtRows.length ? wtRows.reduce((s,r) => s + num(r['Weight (kg)']), 0) / wtRows.length : 0;
+  setHTML(cfg.metricsId, `
+    <div class="metric accent"><div class="metric-label">Total</div><div class="metric-value">${rows.length}</div></div>
+    <div class="metric"><div class="metric-label">Males</div><div class="metric-value">${males}</div></div>
+    <div class="metric"><div class="metric-label">Females</div><div class="metric-value">${females}</div></div>
+    <div class="metric"><div class="metric-label">Breeders</div><div class="metric-value">${breeders}</div></div>
+    <div class="metric"><div class="metric-label">Weaners</div><div class="metric-value">${weaners}</div></div>
+    <div class="metric"><div class="metric-label">Avg weight</div><div class="metric-value">${avgWt.toFixed(1)}<span class="metric-unit"> kg</span></div></div>
+  `);
+  setHTML(cfg.tableId, rows.map(r => `<tr>
+    <td>${fmtDate(r['Date'])}</td>
+    <td class="num">${r['Tag / Ear Number']||'—'}</td>
+    <td>${r['Breed']||'—'}</td>
+    <td><span class="badge ${(r['Sex']||'')==='Male'?'bb':'bt'}">${r['Sex']||'—'}</span></td>
+    <td>${r['Age (months)']||'—'}</td>
+    <td class="num">${r['Weight (kg)']||'—'}</td>
+    <td><span class="badge bk" style="font-size:11px">${r['Status']||'—'}</span></td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Pen / Kraal']||'—'}</td>
+    <td style="font-size:12px">${r['Last Mated']||'—'}</td>
+    <td style="font-size:12px">${r[cfg.expectedKey]||'—'}</td>
+    <td class="num">${r[cfg.bornKey]||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Notes']||''}</td>
+  </tr>`).join(''));
+}
+
+function renderGoatIndividual() {
+  renderIndividualAnimals('goat_individual', {
+    loadId:'gi-loading', errId:'gi-err', contentId:'gi-content',
+    countId:'gi-count', metricsId:'gi-metrics', tableId:'gi-table',
+    expectedKey:'Expected Kid Date', bornKey:'No. of Kids Born'
+  });
+}
+
+function renderSheepIndividual() {
+  renderIndividualAnimals('sheep_individual', {
+    loadId:'si-loading', errId:'si-err', contentId:'si-content',
+    countId:'si-count', metricsId:'si-metrics', tableId:'si-table',
+    expectedKey:'Expected Lamb Date', bornKey:'No. of Lambs Born'
+  });
+}
+
+function renderOrchardPlots() {
+  const rows = DB.orchard_plots;
+  const loadEl = document.getElementById('op-loading');
+  if (loadEl) loadEl.style.display = 'none';
+  if (!rows.length) {
+    const errEl = document.getElementById('op-err');
+    if (errEl) {
+      errEl.style.display = '';
+      errEl.textContent = 'Publish the Orchard Plot Summary sheet to web and add the CSV URL to SHEETS.orchard_plots';
+    }
+    return;
+  }
+  show('op-content');
+  document.getElementById('op-count').textContent = rows.length + ' plots';
+  const totalPlants = rows.reduce((s,r) => s + num(r['Total Plants (todate)']), 0);
+  const totalHoles  = rows.reduce((s,r) => s + num(r['Total Holes Dug (todate)']), 0);
+  const producing   = rows.filter(r => ['Harvesting','Fruiting','Fruiting & Flowering','Producing'].some(x => (r['Yield Status']||'').includes(x))).length;
+  setHTML('op-metrics', `
+    <div class="metric accent"><div class="metric-label">Total plots</div><div class="metric-value">${rows.length}</div></div>
+    <div class="metric"><div class="metric-label">Total plants</div><div class="metric-value">${fmtNum(totalPlants)}</div></div>
+    <div class="metric"><div class="metric-label">Holes dug</div><div class="metric-value">${fmtNum(totalHoles)}</div></div>
+    <div class="metric accent"><div class="metric-label">Producing</div><div class="metric-value">${producing}</div></div>
+  `);
+  setHTML('op-table', rows.map(r => {
+    const st  = r['Yield Status'] || '—';
+    const cls = st.includes('Harvest')||st.includes('Produc') ? 'bg'
+              : st.includes('Fruit')  ? 'bg'
+              : st.includes('Grow')   ? 'ba' : 'bk';
+    return `<tr>
+      <td style="font-weight:500">${r['Crop']||'—'}</td>
+      <td>${r['Block']||'—'}</td>
+      <td class="num">${r['Total Holes Dug (todate)']||'—'}</td>
+      <td class="num">${r['Total Plants (todate)']||'—'}</td>
+      <td>${r['Year Planted']||'—'}</td>
+      <td>${r['Age (years)']||'—'}</td>
+      <td><span class="badge ${cls}">${st}</span></td>
+      <td style="font-size:12px;color:var(--ink3)">${r['Notes']||''}</td>
+    </tr>`;
+  }).join(''));
+}
+
 window.addEventListener('load', () => {
   checkAuth();
   renderDoes();

@@ -207,6 +207,25 @@ tbody tr:hover td { background: var(--cream); }
 .br  { background: var(--red-l);    color: var(--red); }
 .bb  { background: var(--blue-l);   color: var(--blue); }
 .bk  { background: var(--cream2);   color: var(--ink2); }
+.bt  { background: #F0EAF8;         color: #7B4FA8; }
+
+/* ── FORMS ─────────────────────────────────────────── */
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--ink3); }
+input[type="text"], input[type="date"], input[type="password"], select {
+  padding: 7px 10px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  font-size: 13px; font-family: var(--body);
+  background: #fff; color: var(--ink);
+  outline: none; transition: border-color .15s;
+}
+input:focus, select:focus { border-color: var(--green); }
+.btn { padding: 7px 14px; border: 1px solid var(--border2); border-radius: var(--r-sm); background: var(--cream2); color: var(--ink); font-size: 13px; font-family: var(--body); cursor: pointer; transition: background .12s; }
+.btn:hover { background: var(--cream3); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-primary { background: var(--green); color: #fff; border-color: var(--green); }
+.btn-primary:hover { background: var(--green-m); border-color: var(--green-m); }
 
 /* ── TABS ──────────────────────────────────────────── */
 .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 22px; gap: 0; }
@@ -549,7 +568,7 @@ tbody tr:hover td { background: var(--cream); }
     <div class="card">
       <div class="card-header"><span class="card-title">All health events</span><span class="card-pill" id="h-count">0 records</span></div>
       <div class="table-scroll">
-        <table><thead><tr><th>Date</th><th>Species</th><th>Tag</th><th>Condition</th><th>Treatment</th><th>Status</th></tr></thead>
+        <table><thead><tr><th>Date</th><th>Species</th><th>Tag</th><th>Condition</th><th>Treatment</th><th>Status</th><th>Cost USD</th><th>Recorded By</th></tr></thead>
         <tbody id="h-table"></tbody></table>
       </div>
     </div>
@@ -969,6 +988,10 @@ function renderAll() {
   renderYield();
   renderExpenditure();
   renderDoes();
+  renderWeaners();
+  renderGoatIndividual();
+  renderSheepIndividual();
+  renderOrchardPlots();
 }
 
 // ─── DASHBOARD ─────────────────────────────────────────────
@@ -1062,9 +1085,10 @@ function renderDashboard() {
   const daysSince = latestDate ? Math.floor((new Date(today) - new Date(latestDate)) / 86400000) : 99;
   if (daysSince > 1) {
     show('dash-gaps');
-    document.getElementById('dash-gaps').innerHTML = `⚠️ <strong>Last rabbit entry: ${fmtDate(latestDate)}</strong> (${daysSince} day${daysSince>1?'s':''} ago). Open the <a href="https://docs.google.com/spreadsheets/d/${SHEETS.rabbits}" target="_blank" style="color:var(--amber)">Rabbit Sheet</a> to add today's data.`;
+    document.getElementById('dash-gaps').innerHTML = `⚠️ <strong>Last rabbit entry: ${fmtDate(latestDate)}</strong> (${daysSince} day${daysSince>1?'s':''} ago). Open the <a href="https://docs.google.com/spreadsheets/d/1i-9acn1oWUYnD3YGgk2IP4Msw2jJk2_9fby5iL3Mge0" target="_blank" style="color:var(--amber)">Rabbit Sheet</a> to add today's data.`;
   }
   document.getElementById('dash-sub').textContent = `Live data from Google Sheets · Last rabbit entry: ${fmtDate(latestDate)} · ${DB.rabbits.length} rabbit records`;
+  buildTrendChart();
 }
 
 // ─── TREND CHARTS (3 separate) ────────────────────────────
@@ -1412,6 +1436,41 @@ function renderYield() {
     <td class="num c-green">${money(r['Revenue USD'])}</td>
     <td>${statusBadge(r['Payment Status'])}</td>
     <td style="font-size:12px">${r['Buyer']||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${r['Notes']||''}</td>
+  </tr>`).join(''));
+}
+
+// ─── DOES REGISTER ────────────────────────────────────────
+function renderDoes() {
+  const rows = DB.does_register;
+  hide('does-loading');
+  if (!rows.length) {
+    show('does-static');
+    return;
+  }
+  show('does-content');
+  document.getElementById('does-count').textContent = `${rows.length} records`;
+  const pregnant = rows.filter(r => (r['Expected Birth Date']||r['Expected Birth']) && !(r['Actual Birth Date']||r['Actual Birth'])).length;
+  const littered = rows.filter(r => r['Actual Birth Date']||r['Actual Birth']).length;
+  setHTML('does-metrics', `
+    <div class="metric accent"><div class="metric-label">Total does</div><div class="metric-value">${rows.length}</div></div>
+    <div class="metric warn"><div class="metric-label">Expected births</div><div class="metric-value">${pregnant}</div></div>
+    <div class="metric accent"><div class="metric-label">Littered</div><div class="metric-value">${littered}</div></div>
+  `);
+  setHTML('does-table', rows.map(r => `<tr>
+    <td>${fmtDate(r['Date'])}</td>
+    <td class="num">${r['Tag / Doe ID']||r['Tag']||'—'}</td>
+    <td>${r['Cage']||'—'}</td>
+    <td>${r['Breed']||'—'}</td>
+    <td>${r['Age (months)']||'—'}</td>
+    <td class="num">${r['Weight (kg)']||'—'}</td>
+    <td class="num">${r['Litter Number']||r['Litter #']||'—'}</td>
+    <td class="num">${r['Kits Born']||'—'}</td>
+    <td class="num">${r['Kits Alive at 21 days']||r['Kits Alive 21d']||'—'}</td>
+    <td>${fmtDate(r['Date Mated'])}</td>
+    <td>${r['Buck Used']||r['Buck']||'—'}</td>
+    <td>${fmtDate(r['Expected Birth Date']||r['Expected Birth'])}</td>
+    <td>${fmtDate(r['Actual Birth Date']||r['Actual Birth'])}</td>
     <td style="font-size:12px;color:var(--ink3)">${r['Notes']||''}</td>
   </tr>`).join(''));
 }

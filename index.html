@@ -348,7 +348,7 @@ input:focus, select:focus { border-color: var(--green); }
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">Latest orchard activity</span><span class="card-pill" id="dash-orch-pill">—</span></div>
-        <table><thead><tr><th>Field</th><th>Value</th></tr></thead>
+        <table><thead><tr><th>Crop</th><th>Activity</th><th>Notes</th></tr></thead>
         <tbody id="dash-orchard-latest"></tbody></table>
       </div>
     </div>
@@ -1061,22 +1061,21 @@ function renderDashboard() {
     <tr><td><strong>Sheep</strong></td><td class="num">${sTotal}</td><td>${num(latestS['Adult Rams'])||2}</td><td>${num(latestS['Adult Ewes'])||34}</td><td>${(num(latestS['Lambs'])||2)} lambs</td><td>${num(latestS['Pregnant Ewes'])||11}</td></tr>
   `);
 
-  // Latest orchard activity
+  // Latest orchard activity — all crops recorded on the most recent date
   const orchRows = DB.orchards;
-  const latestO  = orchRows.length ? orchRows.slice().sort((a,b)=>new Date(b['Date'])-new Date(a['Date']))[0] : null;
   const orchPill = document.getElementById('dash-orch-pill');
-  if (latestO) {
-    if (orchPill) orchPill.textContent = fmtDate(latestO['Date']);
-    setHTML('dash-orchard-latest', `
-      <tr><td style="color:var(--ink3)">Date</td><td>${fmtDate(latestO['Date'])}</td></tr>
-      <tr><td style="color:var(--ink3)">Crop</td><td style="font-weight:500">${latestO['Crop']||'—'}</td></tr>
-      <tr><td style="color:var(--ink3)">Block</td><td>${latestO['Block']||'—'}</td></tr>
-      <tr><td style="color:var(--ink3)">Activity</td><td>${latestO['Activity Type']||'—'}</td></tr>
-      <tr><td style="color:var(--ink3)">Staff</td><td style="font-size:12px">${latestO['Staff']||'—'}</td></tr>
-      <tr><td style="color:var(--ink3)">Notes</td><td style="font-size:12px;color:var(--ink3)">${latestO['Notes']||'—'}</td></tr>
-    `);
+  if (orchRows.length) {
+    const sorted     = orchRows.slice().sort((a,b) => new Date(b['Date']) - new Date(a['Date']));
+    const latestDate = sorted[0]['Date'];
+    const dayRows    = sorted.filter(r => r['Date'] === latestDate);
+    if (orchPill) orchPill.textContent = fmtDate(latestDate);
+    setHTML('dash-orchard-latest', dayRows.map(r => `<tr>
+      <td style="font-weight:500">${r['Crop']||'—'}</td>
+      <td>${r['Activity Type']||'—'}</td>
+      <td style="font-size:12px;color:var(--ink3)">${r['Notes']||''}</td>
+    </tr>`).join(''));
   } else {
-    setHTML('dash-orchard-latest', '<tr><td colspan="2" class="empty">No orchard data loaded yet</td></tr>');
+    setHTML('dash-orchard-latest', '<tr><td colspan="3" class="empty">No orchard data loaded yet</td></tr>');
   }
 
   // Gaps check

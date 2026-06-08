@@ -393,8 +393,8 @@ input:focus, select:focus { border-color: var(--green); }
       <div class="table-scroll">
         <table><thead><tr>
           <th>Date</th><th>By</th><th>Total</th><th>Preg.</th>
-          <th>♂ Adults</th><th>♀ Adults</th><th>Kits ♂</th><th>Kits ♀</th>
-          <th>Born ♂</th><th>Born ♀</th><th>Died ♂</th><th>Died ♀</th>
+          <th>♂ Adults</th><th>♀ Adults</th><th># Kits</th><th># Weaners</th>
+          <th>Births</th><th>Died ♂</th><th>Died ♀</th>
           <th>Lost ♂</th><th>Lost ♀</th><th>Slght ♂</th><th>Slght ♀</th>
           <th>Feed</th><th>Mated</th>
         </tr></thead>
@@ -1013,8 +1013,7 @@ function renderDashboard() {
   const rPreg   = num(latestR['Pregnant Does'])  || 101;
   const rMale   = num(latestR['Male Adults'])    || 14;
   const rFem    = num(latestR['Female Adults'])  || 161;
-  const rKitsM  = num(latestR['Kits Male'])      || 0;
-  const rKitsF  = num(latestR['Kits Female'])    || 0;
+  const rKits   = num(latestR['# Kits'])         || 0;
 
   const gTotal  = num(latestG['Total Goats'])    || 147;
   const sTotal  = num(latestS['Total Sheep'])    || 53;
@@ -1056,7 +1055,7 @@ function renderDashboard() {
   const latestRDate = latestR['Date'] || '—';
   document.getElementById('dash-date-pill').textContent = fmtDate(latestRDate);
   setHTML('dash-herd', `
-    <tr><td><strong>Rabbits</strong></td><td class="num">${fmtNum(rTotal)}</td><td>${rMale}</td><td>${rFem}</td><td>${(rKitsM+rKitsF)} kits</td><td>${rPreg}</td></tr>
+    <tr><td><strong>Rabbits</strong></td><td class="num">${fmtNum(rTotal)}</td><td>${rMale}</td><td>${rFem}</td><td>${rKits} kits</td><td>${rPreg}</td></tr>
     <tr><td><strong>Goats</strong></td><td class="num">${gTotal}</td><td>${num(latestG['Adult Bucks'])||6}</td><td>${num(latestG['Adult Does'])||79}</td><td>${(num(latestG['Kids'])||39)} kids</td><td>${num(latestG['Pregnant Does'])||21}</td></tr>
     <tr><td><strong>Sheep</strong></td><td class="num">${sTotal}</td><td>${num(latestS['Adult Rams'])||2}</td><td>${num(latestS['Adult Ewes'])||34}</td><td>${(num(latestS['Lambs'])||2)} lambs</td><td>${num(latestS['Pregnant Ewes'])||11}</td></tr>
   `);
@@ -1173,19 +1172,20 @@ function renderRabbits() {
   document.getElementById('r-count').textContent = `${rows.length} records`;
 
   const latest = rows[0];
-  const totalBirths = rows.reduce((s,r) => s + num(r['Births Male']) + num(r['Births Female']), 0);
+  const totalBirths = rows.reduce((s,r) => s + num(r['Births']), 0);
   const totalDeaths = rows.reduce((s,r) => s + num(r['Deaths Male']) + num(r['Deaths Female']), 0);
   setHTML('r-metrics', `
     <div class="metric accent"><div class="metric-label">Latest total</div><div class="metric-value">${fmtNum(num(latest['Total Rabbits']))}</div></div>
     <div class="metric"><div class="metric-label">Pregnant does</div><div class="metric-value">${latest['Pregnant Does']||'—'}</div></div>
-    <div class="metric"><div class="metric-label">Kits</div><div class="metric-value">${num(latest['Kits Male'])+num(latest['Kits Female'])}</div></div>
+    <div class="metric"><div class="metric-label">Kits</div><div class="metric-value">${num(latest['# Kits'])}</div></div>
+    <div class="metric"><div class="metric-label">Weaners</div><div class="metric-value">${num(latest['# Weaners'])}</div></div>
     <div class="metric warn"><div class="metric-label">Total births</div><div class="metric-value">${totalBirths}</div></div>
     <div class="metric danger"><div class="metric-label">Total deaths</div><div class="metric-value">${totalDeaths}</div></div>
     <div class="metric"><div class="metric-label">Submissions</div><div class="metric-value">${rows.length}</div></div>
   `);
 
   setHTML('r-table', rows.map(r => {
-    const bornT = num(r['Births Male'])+num(r['Births Female']);
+    const bornT = num(r['Births']);
     const diedT = num(r['Deaths Male'])+num(r['Deaths Female']);
     const lostT = num(r['Lost Male'])+num(r['Lost Female']);
     return `<tr>
@@ -1195,10 +1195,9 @@ function renderRabbits() {
       <td class="num">${r['Pregnant Does']||'—'}</td>
       <td class="num">${r['Male Adults']||'—'}</td>
       <td class="num">${r['Female Adults']||'—'}</td>
-      <td class="num">${r['Kits Male']||'0'}</td>
-      <td class="num">${r['Kits Female']||'0'}</td>
-      <td class="num ${bornT>0?'c-green':''}">${r['Births Male']||'0'}</td>
-      <td class="num ${bornT>0?'c-green':''}">${r['Births Female']||'0'}</td>
+      <td class="num">${r['# Kits']||'0'}</td>
+      <td class="num">${r['# Weaners']||'0'}</td>
+      <td class="num ${bornT>0?'c-green':''}">${r['Births']||'0'}</td>
       <td class="num ${num(r['Deaths Male'])>0?'c-red':''}">${r['Deaths Male']||'0'}</td>
       <td class="num ${num(r['Deaths Female'])>0?'c-red':''}">${r['Deaths Female']||'0'}</td>
       <td class="num ${lostT>0?'c-amber':''}">${r['Lost Male']||'0'}</td>
@@ -2066,6 +2065,7 @@ const USERS = {
   'rebekah':  'FarmZviz#9',
   'emilia':   'Emilia@Farm1',
   'patience': 'Pat!2026Zv',
+  'kumbirai': 'Kumbi@Zviz7',
 };
 
 function doLogin() {

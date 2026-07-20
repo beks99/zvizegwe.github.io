@@ -585,6 +585,13 @@ input:focus, select:focus { border-color: var(--green); }
   <div id="sl-content" style="display:none">
     <div class="metrics" id="sl-metrics"></div>
     <div class="card">
+      <div class="card-header"><span class="card-title">Sales by produce</span><span class="card-pill" id="sl-produce-count">—</span></div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Produce</th><th>Sales</th><th>Total</th><th>Paid</th><th>% of revenue</th></tr></thead>
+        <tbody id="sl-produce"></tbody></table>
+      </div>
+    </div>
+    <div class="card">
       <div class="card-header"><span class="card-title">Monthly sales summary</span><span class="card-pill" id="sl-count">0 months</span></div>
       <div class="table-scroll">
         <table><thead><tr><th>Month</th><th>Total</th><th>Paid</th></tr></thead>
@@ -1342,16 +1349,46 @@ function renderSales() {
   const total   = rows.reduce((s,r) => s + num(r['Total USD']), 0);
   const paid    = rows.reduce((s,r) => s + num(r['Amount Paid USD']), 0);
   const pending = rows.reduce((s,r) => s + num(r['Balance USD']), 0);
-  const rabbitRev = rows.filter(r => (r['Item']||'').toLowerCase().includes('rabbit')).reduce((s,r) => s + num(r['Total USD']), 0);
-  const granaRev  = rows.filter(r => (r['Item']||'').toLowerCase().includes('gran')).reduce((s,r) => s + num(r['Total USD']), 0);
+
+  // ── Summary by produce — built from whatever Items appear in the sheet ──
+  // Grouped case-insensitively so "Bananas" and "bananas" merge into one line.
+  const titleCase = s => s.replace(/\S+/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
+  const produce = {};
+  rows.forEach(r => {
+    const raw = (r['Item']||'').trim();
+    if (!raw) return;
+    const key = raw.toLowerCase();
+    if (!produce[key]) produce[key] = { label: titleCase(raw), total:0, paid:0, count:0 };
+    produce[key].total += num(r['Total USD']);
+    produce[key].paid  += num(r['Amount Paid USD']);
+    produce[key].count += 1;
+  });
+  const produceList = Object.values(produce).sort((a,b) => b.total - a.total);
+
   setHTML('sl-metrics', `
     <div class="metric accent"><div class="metric-label">Total invoiced</div><div class="metric-value">${money(total)}</div></div>
     <div class="metric accent"><div class="metric-label">Total paid</div><div class="metric-value">${money(paid)}</div></div>
     <div class="metric warn"><div class="metric-label">Outstanding</div><div class="metric-value">${money(pending)}</div></div>
-    <div class="metric"><div class="metric-label">Rabbit meat</div><div class="metric-value">${money(rabbitRev)}</div></div>
-    <div class="metric"><div class="metric-label">Granaburst</div><div class="metric-value">${money(granaRev)}</div></div>
+    <div class="metric"><div class="metric-label">Produce lines</div><div class="metric-value">${produceList.length}</div></div>
     <div class="metric"><div class="metric-label">Transactions</div><div class="metric-value">${rows.length}</div></div>
   `);
+
+  document.getElementById('sl-produce-count').textContent =
+    `${produceList.length} produce line${produceList.length===1?'':'s'}`;
+
+  setHTML('sl-produce', produceList.length ? produceList.map(p => `<tr>
+    <td style="font-weight:500">${p.label}</td>
+    <td class="num" style="color:var(--ink3)">${p.count}</td>
+    <td class="num c-green">${money(p.total)}</td>
+    <td class="num">${money(p.paid)}</td>
+    <td style="color:var(--ink3);font-size:12px">${total>0 ? ((p.total/total)*100).toFixed(1)+'%' : '—'}</td>
+  </tr>`).join('') + `<tr style="border-top:2px solid var(--border2);font-weight:700;background:var(--cream2)">
+    <td style="padding:10px 12px">Total</td>
+    <td class="num">${rows.length}</td>
+    <td class="num c-green">${money(total)}</td>
+    <td class="num">${money(paid)}</td>
+    <td style="color:var(--ink3)">100%</td>
+  </tr>` : '<tr><td colspan="5" class="empty">No items recorded</td></tr>');
   // ── Aggregate sales by month ──────────────────────────────
   const MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const byMonth = {};

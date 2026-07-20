@@ -869,12 +869,26 @@ function parseCSV(text) {
 // ═══════════════════════════════════════════════════════════
 // FETCH HELPER
 // ═══════════════════════════════════════════════════════════
-async function fetchSheet(key) {
-  const res = await fetch(csvUrl(key));
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
-  if (text.trim().startsWith('<')) throw new Error('Got HTML instead of CSV — check sheet is published');
-  return parseCSV(text);
+// Fetch with a hard timeout. Without this, a single unresponsive sheet never
+// settles and Promise.allSettled in syncAll() hangs forever — leaving the
+// whole dashboard stuck on "Loading…".
+async function fetchSheet(key, timeoutMs = 15000) {
+  const ctrl  = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(csvUrl(key), { signal: ctrl.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    if (text.trim().startsWith('<')) throw new Error('Got HTML instead of CSV — check sheet is published');
+    return parseCSV(text);
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      throw new Error(`Timed out after ${timeoutMs/1000}s — check the sheet is still published to web`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -947,12 +961,14 @@ async function syncAll() {
 
   const keys = Object.keys(DB);
   let ok = 0, fail = 0;
+  const failures = [];
   await Promise.allSettled(keys.map(async key => {
     try {
       DB[key] = await fetchSheet(key);
       ok++;
     } catch(e) {
       fail++;
+      failures.push({ key, msg: e.message });
       console.warn(`Sheet "${key}" failed:`, e.message);
     }
   }));
@@ -960,15 +976,24 @@ async function syncAll() {
   btn.disabled = false;
   btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg> Refresh from Sheets`;
 
+  const dashErr = document.getElementById('dash-err');
   if (fail === 0) {
     status.className = 'sync-status ok';
     const total = keys.reduce((s,k) => s + DB[k].length, 0);
-    status.textContent = `✓ ${total} rows across 7 sheets · ${new Date().toLocaleTimeString()}`;
+    status.textContent = `✓ ${total} rows across ${keys.length} sheets · ${new Date().toLocaleTimeString()}`;
+    if (dashErr) dashErr.style.display = 'none';
   } else {
     status.className = 'sync-status err';
-    status.textContent = `${ok} sheets ok · ${fail} failed — make sure sheets are set to "Anyone with link can view"`;
-    document.getElementById('dash-err').style.display = '';
-    document.getElementById('dash-err').innerHTML = `<strong>${fail} sheet(s) failed to load.</strong> Open each Google Sheet → Share → set to <em>"Anyone with the link can view"</em>, then click Refresh.`;
+    status.textContent = `${ok} of ${keys.length} sheets loaded · ${fail} failed`;
+    if (dashErr) {
+      dashErr.style.display = '';
+      dashErr.innerHTML =
+        `<strong>${fail} sheet(s) failed to load — the rest of the dashboard is still live.</strong>` +
+        `<ul style="margin:8px 0 0 18px;line-height:1.6">` +
+        failures.map(f => `<li><strong>${f.key}</strong> — ${f.msg}</li>`).join('') +
+        `</ul>` +
+        `<div style="margin-top:8px">Fix: open the sheet → <em>File → Share → Publish to web</em> (and Share → "Anyone with the link can view"), then click Refresh.</div>`;
+    }
   }
 
   renderAll();
@@ -977,21 +1002,19 @@ async function syncAll() {
 // ═══════════════════════════════════════════════════════════
 // RENDER ALL PAGES
 // ═══════════════════════════════════════════════════════════
+// Each page renders independently — one failure must not blank the rest.
 function renderAll() {
-  renderDashboard();
-  renderRabbits();
-  renderGoats();
-  renderSheep();
-  renderHealth();
-  renderSales();
-  renderOrchards();
-  renderYield();
-  renderExpenditure();
-  renderDoes();
-  renderWeaners();
-  renderGoatIndividual();
-  renderSheepIndividual();
-  renderOrchardPlots();
+  const pages = {
+    dashboard: renderDashboard, rabbits: renderRabbits, goats: renderGoats,
+    sheep: renderSheep, health: renderHealth, sales: renderSales,
+    orchards: renderOrchards, yield: renderYield, expenditure: renderExpenditure,
+    does: renderDoes, weaners: renderWeaners, goatIndividual: renderGoatIndividual,
+    sheepIndividual: renderSheepIndividual, orchardPlots: renderOrchardPlots,
+  };
+  for (const [name, fn] of Object.entries(pages)) {
+    try { fn(); }
+    catch (e) { console.error(`Render failed for "${name}":`, e); }
+  }
 }
 
 // ─── DASHBOARD ─────────────────────────────────────────────

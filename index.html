@@ -585,9 +585,9 @@ input:focus, select:focus { border-color: var(--green); }
   <div id="sl-content" style="display:none">
     <div class="metrics" id="sl-metrics"></div>
     <div class="card">
-      <div class="card-header"><span class="card-title">All sales</span><span class="card-pill" id="sl-count">0 records</span></div>
+      <div class="card-header"><span class="card-title">Monthly sales summary</span><span class="card-pill" id="sl-count">0 months</span></div>
       <div class="table-scroll">
-        <table><thead><tr><th>Date</th><th>Client</th><th>Item</th><th>Qty</th><th>Unit</th><th>Price</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
+        <table><thead><tr><th>Month</th><th>Total</th><th>Paid</th></tr></thead>
         <tbody id="sl-table"></tbody></table>
       </div>
     </div>
@@ -1321,18 +1321,35 @@ function renderSales() {
     <div class="metric"><div class="metric-label">Granaburst</div><div class="metric-value">${money(granaRev)}</div></div>
     <div class="metric"><div class="metric-label">Transactions</div><div class="metric-value">${rows.length}</div></div>
   `);
-  setHTML('sl-table', rows.map(r => `<tr>
-    <td>${fmtDate(r['Date'])}</td>
-    <td>${r['Client']||'—'}</td>
-    <td>${r['Item']||'—'}</td>
-    <td class="num">${r['Quantity']||'—'}</td>
-    <td style="color:var(--ink3)">${r['Unit']||'—'}</td>
-    <td class="num">${r['Unit Price USD']?money(r['Unit Price USD']):'—'}</td>
-    <td class="num c-green">${money(r['Total USD'])}</td>
-    <td class="num">${money(r['Amount Paid USD'])}</td>
-    <td class="num ${num(r['Balance USD'])>0?'c-amber':''}">${num(r['Balance USD'])>0?money(r['Balance USD']):'—'}</td>
-    <td>${statusBadge(r['Payment Status'])}</td>
-  </tr>`).join(''));
+  // ── Aggregate sales by month ──────────────────────────────
+  const MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const byMonth = {};
+  rows.forEach(r => {
+    const key = (r['Date']||'').slice(0,7);   // YYYY-MM
+    if (!/^\d{4}-\d{2}$/.test(key)) return;   // skip rows with no usable date
+    if (!byMonth[key]) byMonth[key] = { total:0, paid:0 };
+    byMonth[key].total += num(r['Total USD']);
+    byMonth[key].paid  += num(r['Amount Paid USD']);
+  });
+
+  const monthKeys = Object.keys(byMonth).sort().reverse();  // most recent first
+  document.getElementById('sl-count').textContent =
+    `${monthKeys.length} month${monthKeys.length===1?'':'s'}`;
+
+  const monthLabel = k => {
+    const [y,m] = k.split('-');
+    return `${MONTHS[parseInt(m)]} ${y}`;
+  };
+
+  setHTML('sl-table', monthKeys.length ? monthKeys.map(k => `<tr>
+    <td style="font-weight:500;white-space:nowrap">${monthLabel(k)}</td>
+    <td class="num c-green">${money(byMonth[k].total)}</td>
+    <td class="num">${money(byMonth[k].paid)}</td>
+  </tr>`).join('') + `<tr style="border-top:2px solid var(--border2);font-weight:700;background:var(--cream2)">
+    <td style="padding:10px 12px">Total</td>
+    <td class="num c-green">${money(total)}</td>
+    <td class="num">${money(paid)}</td>
+  </tr>` : '<tr><td colspan="3" class="empty">No dated sales records</td></tr>');
 }
 
 // ─── ORCHARDS ─────────────────────────────────────────────

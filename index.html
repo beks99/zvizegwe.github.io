@@ -1187,6 +1187,14 @@ function buildTrendChart() {
 }
 
 // ─── RABBITS ──────────────────────────────────────────────
+// Births: prefer a single "Births" column (gender isn't known at birth), but
+// fall back to summing the legacy gendered columns so the page keeps working
+// until the sheet is migrated.
+function rabbitBirths(r) {
+  if (r['Births'] !== undefined && r['Births'] !== '') return num(r['Births']);
+  return num(r['Births Male']) + num(r['Births Female']);
+}
+
 function renderRabbits() {
   const rows = DB.rabbits;
   hide('r-loading');
@@ -1195,7 +1203,7 @@ function renderRabbits() {
   document.getElementById('r-count').textContent = `${rows.length} records`;
 
   const latest = rows[0];
-  const totalBirths = rows.reduce((s,r) => s + num(r['Births']), 0);
+  const totalBirths = rows.reduce((s,r) => s + rabbitBirths(r), 0);
   const totalDeaths = rows.reduce((s,r) => s + num(r['Deaths Male']) + num(r['Deaths Female']), 0);
   setHTML('r-metrics', `
     <div class="metric accent"><div class="metric-label">Latest total</div><div class="metric-value">${fmtNum(num(latest['Total Rabbits']))}</div></div>
@@ -1208,7 +1216,7 @@ function renderRabbits() {
   `);
 
   setHTML('r-table', rows.map(r => {
-    const bornT = num(r['Births']);
+    const bornT = rabbitBirths(r);
     const diedT = num(r['Deaths Male'])+num(r['Deaths Female']);
     const lostT = num(r['Lost Male'])+num(r['Lost Female']);
     return `<tr>
@@ -1220,7 +1228,7 @@ function renderRabbits() {
       <td class="num">${r['Female Adults']||'—'}</td>
       <td class="num">${r['# Kits']||'0'}</td>
       <td class="num">${r['# Weaners']||'0'}</td>
-      <td class="num ${bornT>0?'c-green':''}">${r['Births']||'0'}</td>
+      <td class="num ${bornT>0?'c-green':''}">${bornT}</td>
       <td class="num ${num(r['Deaths Male'])>0?'c-red':''}">${r['Deaths Male']||'0'}</td>
       <td class="num ${num(r['Deaths Female'])>0?'c-red':''}">${r['Deaths Female']||'0'}</td>
       <td class="num ${lostT>0?'c-amber':''}">${r['Lost Male']||'0'}</td>

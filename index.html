@@ -322,6 +322,9 @@ input:focus, select:focus { border-color: var(--green); }
   <button class="nav-item" onclick="nav('expenditure',this)"><span class="nav-dot"></span>Expenditure</button>
   <button class="nav-item" onclick="nav('pl',this)"><span class="nav-dot"></span>Profit & Loss</button>
 
+  <div class="nav-section">Stock</div>
+  <button class="nav-item" onclick="nav('inventory',this)"><span class="nav-dot"></span>Inventory</button>
+
   <div class="nav-section">Data</div>
   <button class="nav-item" onclick="nav('sheets',this)"><span class="nav-dot"></span>All Sheets</button>
 </div>
@@ -774,6 +777,36 @@ input:focus, select:focus { border-color: var(--green); }
   </div>
 </div>
 
+<!-- ─── STOCK INVENTORY ─────────────────────────────────── -->
+<div id="page-inventory" class="page">
+  <div class="page-eyebrow">Stock</div>
+  <div class="page-title">Stock Inventory</div>
+  <div class="page-sub">Current stock on hand from the Kobo stock-movement log · in − out per item</div>
+  <div id="inv-loading" class="loading-wrap"><div class="spinner"></div>Loading stock data…</div>
+  <div id="inv-err" class="err-bar" style="display:none"></div>
+  <div id="inv-content" style="display:none">
+    <div class="metrics" id="inv-metrics"></div>
+
+    <!-- Low-stock alerts -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Low-stock alerts</span><span id="inv-alert-pill" class="card-pill danger" style="display:none"></span></div>
+      <div id="inv-alerts"></div>
+    </div>
+
+    <!-- Stock on hand -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Stock on hand</span><span class="card-pill" id="inv-count">0 items</span></div>
+      <div class="table-scroll">
+        <table><thead><tr>
+          <th>Item</th><th>On hand</th><th>Unit</th><th>Reorder level</th>
+          <th>Location</th><th>Last movement</th><th>Status</th>
+        </tr></thead>
+        <tbody id="inv-table"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ─── ALL SHEETS ─────────────────────────────────────── -->
 <div id="page-sheets" class="page">
   <div class="page-eyebrow">Data</div>
@@ -845,6 +878,9 @@ const SHEETS = {
   goat_individual: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRAwrFLGe2HKE7zky_NF3pZXpVyTj_NdK7_e3ZcPXFmP2bgtLflpoqQTIGFcjBaZwGV-EX9kc3Iviah/pub?gid=731198984&single=true&output=csv',
   sheep_individual:'https://docs.google.com/spreadsheets/d/e/2PACX-1vSxgLUDl0rya-twZ5TiILorMC8BgqN-N72c70jKHKnLbPQrBnUBd-9sDEp9lsMjRPhRMs-_EOiHpqj4/pub?gid=1862327671&single=true&output=csv',
   orchard_plots:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyagjB-JdN7IeZeg9VDqpKWbTqTdKd6XA8C6hY99S4QPY2Wuc5Vj3qh4I7T-3h6SU5OtWJgXfTTXOF/pub?gid=465361097&single=true&output=csv',
+  // Stock inventory — Kobo "Stock Movement" form, bridged to a published Google Sheet CSV.
+  // Replace this placeholder with the real "Publish to web → CSV" URL once the sheet exists.
+  inventory:       'PASTE_PUBLISHED_INVENTORY_CSV_URL_HERE',
 };
 function csvUrl(key) {
   return SHEETS[key];
@@ -953,7 +989,7 @@ function setTab(prefix, id, btn) {
 // ═══════════════════════════════════════════════════════════
 // STORED DATA
 // ═══════════════════════════════════════════════════════════
-const DB = { rabbits:[], goats:[], sheep:[], health:[], sales:[], orchards:[], yield:[], expenditure:[], does_register:[], weaner_weights:[], goat_individual:[], sheep_individual:[], orchard_plots:[] };
+const DB = { rabbits:[], goats:[], sheep:[], health:[], sales:[], orchards:[], yield:[], expenditure:[], does_register:[], weaner_weights:[], goat_individual:[], sheep_individual:[], orchard_plots:[], inventory:[] };
 
 // ═══════════════════════════════════════════════════════════
 // SYNC ALL
@@ -1017,6 +1053,7 @@ function renderAll() {
     orchards: renderOrchards, yield: renderYield, expenditure: renderExpenditure,
     does: renderDoes, weaners: renderWeaners, goatIndividual: renderGoatIndividual,
     sheepIndividual: renderSheepIndividual, orchardPlots: renderOrchardPlots,
+    inventory: renderInventory,
   };
   for (const [name, fn] of Object.entries(pages)) {
     try { fn(); }
@@ -2134,6 +2171,115 @@ function renderOrchardPlots() {
       <td style="font-size:12px;color:var(--ink3)">${r['Notes']||''}</td>
     </tr>`;
   }).join(''));
+}
+
+// ─── STOCK INVENTORY ──────────────────────────────────────
+// Reorder thresholds per item (machine-code key). Edit these freely — items not
+// listed fall back to _default. When on-hand ≤ threshold the item is flagged.
+const REORDER_LEVELS = {
+  maize_seed:            20,   // bags
+  compound_d_fertiliser: 5,   // units of whatever unit is logged
+  _default:              5,
+};
+
+// Turn a Kobo machine code into a readable label: "maize_seed" → "Maize Seed".
+function prettify(code) {
+  if (!code) return '';
+  return String(code).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+// Resolve a field that may be an "other" free-text value.
+function invField(row, mainKey, otherKey) {
+  const v = (row[mainKey] || '').trim();
+  if (v.toLowerCase() === 'other' && row[otherKey]) return row[otherKey].trim();
+  return v;
+}
+// Signed movement quantity: +qty for "in", −qty for "out".
+function movementQty(row) {
+  const q = num(row['quantity']);
+  return (row['transaction_type'] || '').trim().toLowerCase() === 'out' ? -q : q;
+}
+function reorderLevel(itemCode) {
+  return REORDER_LEVELS[itemCode] != null ? REORDER_LEVELS[itemCode] : REORDER_LEVELS._default;
+}
+
+function renderInventory() {
+  const rows = DB.inventory;
+  hide('inv-loading');
+  if (!rows.length) {
+    show('inv-err');
+    document.getElementById('inv-err').innerHTML =
+      'No stock data loaded. Set <code>SHEETS.inventory</code> to the published-to-web CSV URL of the Kobo stock sheet, then Refresh.';
+    return;
+  }
+  show('inv-content');
+
+  // ── Aggregate movements into per-item on-hand ─────────────
+  const items = {};   // keyed by item machine code
+  rows.forEach(r => {
+    const code = (r['item_name'] || '').trim();
+    if (!code) return;                       // skip blank/partial rows
+    // "other" → use the free-text as typed; otherwise prettify the machine code.
+    const isOther = code.toLowerCase() === 'other';
+    const label = isOther ? (r['item_other'] || 'Other').trim() : prettify(code);
+    // Distinct "other" items must not merge — key them by their free-text label.
+    const key = isOther ? 'other:' + label.toLowerCase() : code;
+    if (!items[key]) items[key] = { code, label, onHand:0, units:new Set(), lastDate:'', location:'' };
+    const it = items[key];
+    it.onHand += movementQty(r);
+    const unit = invField(r, 'unit', 'unit_other');
+    if (unit) it.units.add(prettify(unit));
+    const loc = invField(r, 'storage_location', 'location_other');
+    if (loc) it.location = prettify(loc);
+    const d = (r['transaction_date'] || r['_submission_time'] || '').slice(0,10);
+    if (d && d > it.lastDate) it.lastDate = d;
+  });
+
+  const list = Object.values(items).map(it => {
+    const level = reorderLevel(it.code);
+    const status = it.onHand <= 0 ? 'out' : (it.onHand <= level ? 'low' : 'ok');
+    return { ...it, level, status, unit:[...it.units].join(', ') || '—' };
+  });
+
+  // ── Metrics ───────────────────────────────────────────────
+  const lowCount = list.filter(i => i.status === 'low').length;
+  const outCount = list.filter(i => i.status === 'out').length;
+  setHTML('inv-metrics', `
+    <div class="metric accent"><div class="metric-label">Items tracked</div><div class="metric-value">${list.length}</div></div>
+    <div class="metric warn"><div class="metric-label">Low stock</div><div class="metric-value">${lowCount}</div></div>
+    <div class="metric danger"><div class="metric-label">Out of stock</div><div class="metric-value">${outCount}</div></div>
+    <div class="metric"><div class="metric-label">Movements logged</div><div class="metric-value">${rows.length}</div></div>
+  `);
+
+  // ── Low-stock alert card ──────────────────────────────────
+  const flagged = list.filter(i => i.status !== 'ok')
+                      .sort((a,b) => a.onHand - b.onHand);
+  const alertPill = document.getElementById('inv-alert-pill');
+  if (flagged.length) {
+    if (alertPill) { alertPill.style.display = ''; alertPill.textContent = `${flagged.length} need${flagged.length===1?'s':''} attention`; }
+    setHTML('inv-alerts', flagged.map(i => `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span><strong>${i.label}</strong> <span style="color:var(--ink3);font-size:12px">· ${i.location||'—'}</span></span>
+      <span>${fmtNum(i.onHand)} ${i.unit==='—'?'':i.unit} <span class="badge ${i.status==='out'?'br':'ba'}">${i.status==='out'?'Out of stock':'Low'}</span></span>
+    </div>`).join(''));
+  } else {
+    if (alertPill) alertPill.style.display = 'none';
+    setHTML('inv-alerts', '<div class="empty">All items above their reorder level ✓</div>');
+  }
+
+  // ── Stock-on-hand table (low stock first) ─────────────────
+  const order = { out:0, low:1, ok:2 };
+  list.sort((a,b) => (order[a.status]-order[b.status]) || a.label.localeCompare(b.label));
+  document.getElementById('inv-count').textContent = `${list.length} item${list.length===1?'':'s'}`;
+  const badge = { out:'br', low:'ba', ok:'bg' };
+  const word  = { out:'Out of stock', low:'Low', ok:'In stock' };
+  setHTML('inv-table', list.map(i => `<tr>
+    <td style="font-weight:500">${i.label}</td>
+    <td class="num ${i.status==='out'?'c-red':i.status==='low'?'c-amber':''}" style="font-weight:500">${fmtNum(i.onHand)}</td>
+    <td style="font-size:12px;color:var(--ink3)">${i.unit}</td>
+    <td class="num" style="color:var(--ink3)">${i.level}</td>
+    <td style="font-size:12px;color:var(--ink3)">${i.location||'—'}</td>
+    <td style="font-size:12px;color:var(--ink3);white-space:nowrap">${fmtDate(i.lastDate)}</td>
+    <td><span class="badge ${badge[i.status]}">${word[i.status]}</span></td>
+  </tr>`).join(''));
 }
 
 window.addEventListener('load', () => {

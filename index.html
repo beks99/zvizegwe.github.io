@@ -787,6 +787,9 @@ input:focus, select:focus { border-color: var(--green); }
   <div id="inv-content" style="display:none">
     <div class="metrics" id="inv-metrics"></div>
 
+    <!-- Mixed-unit warning (an item logged in more than one unit can't be summed) -->
+    <div id="inv-unit-warn" class="gap-bar" style="display:none"></div>
+
     <!-- Low-stock alerts -->
     <div class="card">
       <div class="card-header"><span class="card-title">Low-stock alerts</span><span id="inv-alert-pill" class="card-pill danger" style="display:none"></span></div>
@@ -2235,8 +2238,13 @@ function renderInventory() {
 
   const list = Object.values(items).map(it => {
     const level = reorderLevel(it.code);
-    const status = it.onHand <= 0 ? 'out' : (it.onHand <= level ? 'low' : 'ok');
-    return { ...it, level, status, unit:[...it.units].join(', ') || '—' };
+    // An item logged in more than one unit can't be summed meaningfully — flag it
+    // and keep it out of the low/out stock logic rather than reporting a false number.
+    const mixed = it.units.size > 1;
+    const status = mixed ? 'mixed'
+                 : it.onHand <= 0 ? 'out'
+                 : it.onHand <= level ? 'low' : 'ok';
+    return { ...it, level, status, mixed, unit:[...it.units].join(', ') || '—' };
   });
 
   // ── Metrics ───────────────────────────────────────────────
@@ -2249,8 +2257,22 @@ function renderInventory() {
     <div class="metric"><div class="metric-label">Movements logged</div><div class="metric-value">${rows.length}</div></div>
   `);
 
-  // ── Low-stock alert card ──────────────────────────────────
-  const flagged = list.filter(i => i.status !== 'ok')
+  // ── Mixed-unit guardrail ──────────────────────────────────
+  // Each item must be logged in a single unit or its on-hand total is meaningless.
+  const mixedItems = list.filter(i => i.mixed);
+  const unitWarn = document.getElementById('inv-unit-warn');
+  if (unitWarn) {
+    if (mixedItems.length) {
+      unitWarn.style.display = '';
+      unitWarn.innerHTML = `⚠️ <strong>${mixedItems.length} item(s) logged in more than one unit</strong> — on-hand can't be totalled until each uses a single unit in Kobo: ` +
+        mixedItems.map(i => `<strong>${i.label}</strong> (${i.unit})`).join(', ') + '.';
+    } else {
+      unitWarn.style.display = 'none';
+    }
+  }
+
+  // ── Low-stock alert card (mixed-unit items excluded — can't be judged) ──
+  const flagged = list.filter(i => i.status === 'out' || i.status === 'low')
                       .sort((a,b) => a.onHand - b.onHand);
   const alertPill = document.getElementById('inv-alert-pill');
   if (flagged.length) {
@@ -2264,16 +2286,16 @@ function renderInventory() {
     setHTML('inv-alerts', '<div class="empty">All items above their reorder level ✓</div>');
   }
 
-  // ── Stock-on-hand table (low stock first) ─────────────────
-  const order = { out:0, low:1, ok:2 };
+  // ── Stock-on-hand table (items needing attention first) ───
+  const order = { out:0, low:1, mixed:2, ok:3 };
   list.sort((a,b) => (order[a.status]-order[b.status]) || a.label.localeCompare(b.label));
   document.getElementById('inv-count').textContent = `${list.length} item${list.length===1?'':'s'}`;
-  const badge = { out:'br', low:'ba', ok:'bg' };
-  const word  = { out:'Out of stock', low:'Low', ok:'In stock' };
+  const badge = { out:'br', low:'ba', mixed:'ba', ok:'bg' };
+  const word  = { out:'Out of stock', low:'Low', mixed:'⚠ Mixed units', ok:'In stock' };
   setHTML('inv-table', list.map(i => `<tr>
     <td style="font-weight:500">${i.label}</td>
-    <td class="num ${i.status==='out'?'c-red':i.status==='low'?'c-amber':''}" style="font-weight:500">${fmtNum(i.onHand)}</td>
-    <td style="font-size:12px;color:var(--ink3)">${i.unit}</td>
+    <td class="num ${i.status==='out'?'c-red':(i.status==='low'||i.status==='mixed')?'c-amber':''}" style="font-weight:500">${i.mixed ? '⚠' : fmtNum(i.onHand)}</td>
+    <td style="font-size:12px;color:${i.mixed?'var(--amber)':'var(--ink3)'}">${i.unit}</td>
     <td class="num" style="color:var(--ink3)">${i.level}</td>
     <td style="font-size:12px;color:var(--ink3)">${i.location||'—'}</td>
     <td style="font-size:12px;color:var(--ink3);white-space:nowrap">${fmtDate(i.lastDate)}</td>
